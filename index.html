@@ -1650,7 +1650,8 @@
     if (hasData) updateUIForData();
     else showEmptyState();
     setupDragAndDrop();
-    setupRealtimeSync();
+    setInterval(saveDataToStorage, 30000);
+    window.addEventListener('beforeunload', () => saveDataToStorage());
 }
         
         function showEmptyState() {
@@ -1765,15 +1766,15 @@
                 const result = processExcelData(data);
                 
                 document.getElementById('progress-bar').style.width = '90%';
-document.getElementById('progress-text').textContent = 'Saving to Supabase...';
+document.getElementById('progress-text').textContent = 'Saving...';
 if (result.ingredients.length > 0) {
     inventoryData.ingredients = result.ingredients;
-    await saveAllIngredientsToDB();
 }
 if (result.recipes.length > 0) {
     inventoryData.recipes = result.recipes;
-    for (const recipe of result.recipes) { await saveRecipeToDB(recipe); }
 }
+await saveDataToStorage();
+
 document.getElementById('progress-bar').style.width = '100%';
 document.getElementById('progress-text').textContent = 'Complete!';
                 
@@ -3911,8 +3912,7 @@ const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
     updateDateFilterHint();
 });
 
-// Add Supabase script BEFORE your script tag (in <head> or just before </body>):
-// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+// Supabase already loaded in head
         
         // Get total GRN received for a specific ingredient on a specific date
         function getGRNForDate(ingredientId, date, fromDate = null) {
