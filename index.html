@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oven X - Inventory & Consumption Management</title>
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -630,6 +632,16 @@
             background: #ef4444;
         }
         
+        .offline-indicator.syncing {
+            background: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
         /* Secondary Tabs */
         .tabs-secondary {
             display: flex;
@@ -688,6 +700,21 @@
             margin-bottom: 20px;
         }
         
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .header-content {
@@ -722,8 +749,8 @@
 
     <!-- Offline Status Indicator -->
     <div class="offline-indicator" id="offline-status">
-    <i class="fas fa-cloud"></i> LIVE - Synced to Supabase
-</div>
+        <i class="fas fa-cloud"></i> <span id="sync-status-text">Connecting...</span>
+    </div>
 
     <!-- Header -->
     <header class="header">
@@ -734,8 +761,8 @@
                     <i class="fas fa-hdd"></i> Storage
                 </button>
                 <button class="btn btn-info" onclick="openModal('opening-stock-modal')" style="background:#3b82f6;">
-    <i class="fas fa-box-open"></i> Set Opening Stock
-</button>
+                    <i class="fas fa-box-open"></i> Set Opening Stock
+                </button>
                 <button class="btn btn-primary" onclick="openModal('upload-data-modal')">
                     <i class="fas fa-cloud-upload-alt"></i> Upload Data
                 </button>
@@ -1083,14 +1110,14 @@
                             <thead>
                                 <tr>
                                     <th>Ingredient</th>
-<th>Opening</th>
-<th>GRN (+)</th>
-<th>Available</th>
-<th>Closing Count</th>
-<th>Consumed</th>
-<th>Cost/Unit</th>
-<th>Cost</th>
-<th>Status</th>
+                                    <th>Opening</th>
+                                    <th>GRN (+)</th>
+                                    <th>Available</th>
+                                    <th>Closing Count</th>
+                                    <th>Consumed</th>
+                                    <th>Cost/Unit</th>
+                                    <th>Cost</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="variance-table-body">
@@ -1428,130 +1455,65 @@
             </div>
         </div>
     </div>
+
     <!-- Opening Stock Modal -->
-<div class="modal-overlay" id="opening-stock-modal">
-    <div class="modal" style="max-width: 800px;">
-        <div class="modal-header">
-            <h3 class="modal-title"><i class="fas fa-box-open"></i> Set Opening Stock</h3>
-            <button class="modal-close" onclick="closeModal('opening-stock-modal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div style="background:#dbeafe;padding:18px;border-radius:12px;margin-bottom:20px;">
-                <div style="font-weight:800;color:#1e40af;margin-bottom:6px;"><i class="fas fa-info-circle"></i> When to use this</div>
-                <div style="font-size:14px;color:#1e40af;line-height:1.7;">
-                    • <strong>Start of month:</strong> Enter counts from your last closing sheet<br>
-                    • <strong>After that:</strong> Opening stock auto-updates every night from Night Closing<br>
-                    • You only need to manually set this <strong>once per month</strong>
+    <div class="modal-overlay" id="opening-stock-modal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-box-open"></i> Set Opening Stock</h3>
+                <button class="modal-close" onclick="closeModal('opening-stock-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#dbeafe;padding:18px;border-radius:12px;margin-bottom:20px;">
+                    <div style="font-weight:800;color:#1e40af;margin-bottom:6px;"><i class="fas fa-info-circle"></i> When to use this</div>
+                    <div style="font-size:14px;color:#1e40af;line-height:1.7;">
+                        • <strong>Start of month:</strong> Enter counts from your last closing sheet<br>
+                        • <strong>After that:</strong> Opening stock auto-updates every night from Night Closing<br>
+                        • You only need to manually set this <strong>once per month</strong>
+                    </div>
                 </div>
-            </div>
-            <div style="margin-bottom:15px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-                <div>
-                    <label class="form-label">Opening Stock Date</label>
-                    <input type="date" class="form-input" id="opening-stock-date">
+                <div style="margin-bottom:15px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                    <div>
+                        <label class="form-label">Opening Stock Date</label>
+                        <input type="date" class="form-input" id="opening-stock-date">
+                    </div>
+                    <input type="text" class="form-input" id="opening-stock-search" placeholder="Search ingredient..." onkeyup="filterOpeningTable()" style="min-width:250px;">
                 </div>
-                <input type="text" class="form-input" id="opening-stock-search" placeholder="Search ingredient..." onkeyup="filterOpeningTable()" style="min-width:250px;">
-            </div>
-            <div style="max-height:420px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:12px;">
-                <table style="width:100%;border-collapse:collapse;">
-                    <thead style="position:sticky;top:0;background:#f8fafc;z-index:1;">
-                        <tr>
-                            <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Ingredient</th>
-                            <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Current Stock</th>
-                            <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Set Opening Stock</th>
-                            <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Unit</th>
-                        </tr>
-                    </thead>
-                    <tbody id="opening-stock-table-body"></tbody>
-                </table>
-            </div>
-            <div style="margin-top:20px;display:flex;gap:15px;">
-                <button class="btn btn-primary" style="flex:1;" onclick="saveOpeningStock()">
-                    <i class="fas fa-save"></i> Save Opening Stock
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal('opening-stock-modal')">Cancel</button>
+                <div style="max-height:420px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:12px;">
+                    <table style="width:100%;border-collapse:collapse;">
+                        <thead style="position:sticky;top:0;background:#f8fafc;z-index:1;">
+                            <tr>
+                                <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Ingredient</th>
+                                <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Current Stock</th>
+                                <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Set Opening Stock</th>
+                                <th style="padding:14px 15px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;">Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="opening-stock-table-body"></tbody>
+                    </table>
+                </div>
+                <div style="margin-top:20px;display:flex;gap:15px;">
+                    <button class="btn btn-primary" style="flex:1;" onclick="saveOpeningStock()">
+                        <i class="fas fa-save"></i> Save Opening Stock
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal('opening-stock-modal')">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <script>
         // ==========================================
-        // INDEXEDDB PERMANENT STORAGE
+        // SUPABASE CONFIGURATION
         // ==========================================
         
-        const DB_NAME = 'OvenX_Database_v1';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'inventory_data';
+        const SUPABASE_URL = 'https://ypziyhlozwtziurdeuxb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlweml5aGxvend0eml1cmRldXhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjU3MzQsImV4cCI6MjA4OTM0MTczNH0.-6w7l6oRTEuZJc9pnoVdUsnV3W-j1vCxcTaVnPeKzLk';
         
-        class OvenXDatabase {
-            constructor() {
-                this.db = null;
-                this.isReady = false;
-            }
-            
-            async init() {
-                if (this.isReady) return this.db;
-                
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(DB_NAME, DB_VERSION);
-                    
-                    request.onerror = () => reject(request.error);
-                    
-                    request.onsuccess = () => {
-                        this.db = request.result;
-                        this.isReady = true;
-                        console.log('✅ IndexedDB ready');
-                        resolve(this.db);
-                    };
-                    
-                    request.onupgradeneeded = (event) => {
-                        const db = event.target.result;
-                        if (!db.objectStoreNames.contains(STORE_NAME)) {
-                            db.createObjectStore(STORE_NAME, { keyPath: 'key' });
-                        }
-                    };
-                });
-            }
-            
-            async save(key, data) {
-                if (!this.isReady) await this.init();
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([STORE_NAME], 'readwrite');
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.put({ key, data, timestamp: Date.now() });
-                    request.onsuccess = () => resolve(true);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-            
-            async load(key) {
-                if (!this.isReady) await this.init();
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([STORE_NAME], 'readonly');
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.get(key);
-                    request.onsuccess = () => resolve(request.result ? request.result.data : null);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-            
-            async clearAll() {
-                if (!this.isReady) await this.init();
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([STORE_NAME], 'readwrite');
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.clear();
-                    request.onsuccess = () => resolve(true);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-        }
-        
-        const ovenDB = new OvenXDatabase();
-        const STORAGE_KEY = 'ovenX_inventory_data_v1';
+        let supabaseClient = null;
         
         // ==========================================
-        // DATA STORE (Starts Empty!)
+        // DATA STORE
         // ==========================================
         
         let inventoryData = {
@@ -1562,80 +1524,590 @@
             closingHistory: []
         };
         
-        let isDataInitialized = false;
-        
         // ==========================================
-        // STORAGE FUNCTIONS
+        // SUPABASE INITIALIZATION
         // ==========================================
         
-        async function saveDataToStorage() {
+        async function initializeSupabase() {
             try {
-                await ovenDB.save(STORAGE_KEY, inventoryData);
-                try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventoryData));
-                } catch (e) {}
-                showNotification('💾 Data saved');
+                updateSyncStatus('syncing', 'Connecting to Supabase...');
+                
+                // Initialize Supabase client
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Test connection
+                const { data, error } = await supabaseClient.from('ingredients').select('count', { count: 'exact', head: true });
+                
+                if (error) throw error;
+                
+                updateSyncStatus('online', 'Connected to Supabase');
+                console.log('✅ Supabase connected successfully');
+                
+                // Load all data from Supabase
+                await loadAllDataFromSupabase();
+                
                 return true;
             } catch (error) {
-                showNotification('❌ Save failed', 'error');
+                console.error('❌ Supabase connection failed:', error);
+                updateSyncStatus('offline', 'Supabase Error - Using Local');
+                
+                // Fallback to local storage
+                await loadDataFromLocalStorage();
                 return false;
             }
         }
         
-        async function loadDataFromStorage() {
-    try {
-        const data = await ovenDB.load(STORAGE_KEY);
-        if (data) {
-            // CRITICAL FIX: Ensure all numeric fields are actually numbers, not strings
-            inventoryData = data;
+        function updateSyncStatus(status, message) {
+            const indicator = document.getElementById('offline-status');
+            const text = document.getElementById('sync-status-text');
             
-            // Fix any string numbers that might have been stored
-            if (inventoryData.ingredients) {
-                inventoryData.ingredients.forEach(ing => {
-                    ing.currentStock = Number(ing.currentStock) || 0;
-                    ing.openingStock = ing.openingStock !== undefined ? Number(ing.openingStock) : undefined;
-                    ing.minLevel = Number(ing.minLevel) || 0;
-                    ing.costPerUnit = Number(ing.costPerUnit) || 0;
-                });
+            if (indicator && text) {
+                indicator.className = 'offline-indicator ' + status;
+                text.textContent = message;
             }
-            
-            return true;
         }
-    } catch (err) {
-        console.error('IndexedDB load failed:', err);
-    }
-    
-    // Fallback to localStorage
-    const legacy = localStorage.getItem(STORAGE_KEY);
-    if (legacy) {
-        try {
-            inventoryData = JSON.parse(legacy);
+        
+        // ==========================================
+        // SUPABASE DATA OPERATIONS
+        // ==========================================
+        
+        async function loadAllDataFromSupabase() {
+            updateSyncStatus('syncing', 'Loading data...');
             
-            // Apply same number conversion fix
-            if (inventoryData.ingredients) {
-                inventoryData.ingredients.forEach(ing => {
-                    ing.currentStock = Number(ing.currentStock) || 0;
-                    ing.openingStock = ing.openingStock !== undefined ? Number(ing.openingStock) : undefined;
+            try {
+                // Load ingredients
+                const { data: ingredients, error: ingError } = await supabaseClient
+                    .from('ingredients')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (ingError) throw ingError;
+                
+                // Load recipes with their ingredients
+                const { data: recipes, error: recError } = await supabaseClient
+                    .from('recipes')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (recError) throw recError;
+                
+                const { data: recipeIngredients, error: recIngError } = await supabaseClient
+                    .from('recipe_ingredients')
+                    .select('*');
+                
+                if (recIngError) throw recIngError;
+                
+                // Load GRN history with items
+                const { data: grnHistory, error: grnError } = await supabaseClient
+                    .from('grn_history')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (grnError) throw grnError;
+                
+                const { data: grnItems, error: grnItemsError } = await supabaseClient
+                    .from('grn_items')
+                    .select('*');
+                
+                if (grnItemsError) throw grnItemsError;
+                
+                // Load consumption logs with items
+                const { data: consumptionLog, error: consError } = await supabaseClient
+                    .from('consumption_log')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (consError) throw consError;
+                
+                const { data: consumptionItems, error: consItemsError } = await supabaseClient
+                    .from('consumption_log_items')
+                    .select('*');
+                
+                if (consItemsError) throw consItemsError;
+                
+                // Load closing history with items
+                const { data: closingHistory, error: closeError } = await supabaseClient
+                    .from('closing_history')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (closeError) throw closeError;
+                
+                const { data: closingItems, error: closeItemsError } = await supabaseClient
+                    .from('closing_items')
+                    .select('*');
+                
+                if (closeItemsError) throw closeItemsError;
+                
+                // Transform data to match local format
+                inventoryData.ingredients = (ingredients || []).map(ing => ({
+                    id: ing.id,
+                    name: ing.name,
+                    category: ing.category,
+                    unit: ing.unit,
+                    currentStock: parseFloat(ing.current_stock) || 0,
+                    openingStock: ing.opening_stock !== null ? parseFloat(ing.opening_stock) : undefined,
+                    openingStockDate: ing.opening_stock_date,
+                    minLevel: parseFloat(ing.min_level) || 0,
+                    costPerUnit: parseFloat(ing.cost_per_unit) || 0,
+                    supplier: ing.supplier || '',
+                    location: ing.location || ''
+                }));
+                
+                // Process recipes
+                inventoryData.recipes = (recipes || []).map(recipe => {
+                    const ingredients = (recipeIngredients || [])
+                        .filter(ri => ri.recipe_id === recipe.id)
+                        .map(ri => {
+                            const ingredient = inventoryData.ingredients.find(i => i.id === ri.ingredient_id);
+                            return {
+                                ingredientId: ri.ingredient_id,
+                                name: ingredient ? ingredient.name : '',
+                                qty: parseFloat(ri.quantity) || 0,
+                                unit: ri.unit
+                            };
+                        });
+                    
+                    return {
+                        id: recipe.id,
+                        name: recipe.name,
+                        category: recipe.category,
+                        sellingPrice: parseFloat(recipe.selling_price) || 0,
+                        ingredients: ingredients
+                    };
                 });
+                
+                // Process GRN history
+                inventoryData.grnHistory = (grnHistory || []).map(grn => {
+                    const items = (grnItems || [])
+                        .filter(gi => gi.grn_id === grn.id)
+                        .map(gi => ({
+                            ingredientId: gi.ingredient_id,
+                            name: gi.name,
+                            qty: parseFloat(gi.quantity) || 0,
+                            unit: gi.unit,
+                            unitCost: parseFloat(gi.unit_cost) || 0,
+                            total: parseFloat(gi.total) || 0,
+                            itemSupplier: gi.item_supplier || ''
+                        }));
+                    
+                    return {
+                        id: grn.id,
+                        grnNumber: grn.grn_number,
+                        date: grn.date,
+                        supplier: grn.supplier,
+                        invoiceNumber: grn.invoice_number || '',
+                        items: items,
+                        total: parseFloat(grn.total) || 0,
+                        notes: grn.notes || '',
+                        timestamp: grn.created_at
+                    };
+                });
+                
+                // Process consumption log
+                inventoryData.consumptionLog = (consumptionLog || []).map(log => {
+                    const items = (consumptionItems || [])
+                        .filter(ci => ci.consumption_log_id === log.id)
+                        .map(ci => ({
+                            ingredientId: ci.ingredient_id,
+                            name: ci.name,
+                            qty: parseFloat(ci.quantity) || 0,
+                            unit: ci.unit,
+                            cost: parseFloat(ci.cost) || 0
+                        }));
+                    
+                    return {
+                        id: log.id,
+                        timestamp: log.created_at,
+                        recipeId: log.recipe_id,
+                        recipeName: log.recipe_name,
+                        type: log.type,
+                        reason: log.reason,
+                        ingredients: items,
+                        totalCost: parseFloat(log.total_cost) || 0,
+                        closingId: log.closing_id
+                    };
+                });
+                
+                // Process closing history
+                inventoryData.closingHistory = (closingHistory || []).map(closing => {
+                    const items = (closingItems || [])
+                        .filter(ci => ci.closing_id === closing.id)
+                        .map(ci => ({
+                            ingredientId: ci.ingredient_id,
+                            name: ci.name,
+                            unit: ci.unit,
+                            opening: parseFloat(ci.opening) || 0,
+                            grnToday: parseFloat(ci.grn_today) || 0,
+                            available: parseFloat(ci.available) || 0,
+                            physical: parseFloat(ci.physical) || 0,
+                            consumed: parseFloat(ci.consumed) || 0,
+                            consumptionCost: parseFloat(ci.consumption_cost) || 0,
+                            costPerUnit: parseFloat(ci.cost_per_unit) || 0
+                        }));
+                    
+                    return {
+                        id: closing.id,
+                        date: closing.date,
+                        closedBy: closing.closed_by,
+                        items: items,
+                        totalConsumptionCost: parseFloat(closing.total_consumption_cost) || 0,
+                        timestamp: closing.created_at
+                    };
+                });
+                
+                updateSyncStatus('online', `Synced - ${inventoryData.ingredients.length} items`);
+                console.log('✅ Data loaded from Supabase');
+                
+            } catch (error) {
+                console.error('❌ Error loading from Supabase:', error);
+                throw error;
             }
+        }
+        
+        // ==========================================
+        // SAVE OPERATIONS TO SUPABASE
+        // ==========================================
+        
+        async function saveIngredientToSupabase(ingredient) {
+            if (!supabaseClient) return false;
             
-            await ovenDB.save(STORAGE_KEY, inventoryData);
-            return true;
-        } catch (e) {}
-    }
-    
-    return false;
-}
+            try {
+                const { error } = await supabaseClient
+                    .from('ingredients')
+                    .upsert({
+                        id: ingredient.id,
+                        name: ingredient.name,
+                        category: ingredient.category,
+                        unit: ingredient.unit,
+                        current_stock: ingredient.currentStock,
+                        opening_stock: ingredient.openingStock,
+                        opening_stock_date: ingredient.openingStockDate,
+                        min_level: ingredient.minLevel,
+                        cost_per_unit: ingredient.costPerUnit,
+                        supplier: ingredient.supplier,
+                        location: ingredient.location,
+                        updated_at: new Date().toISOString()
+                    });
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Error saving ingredient:', error);
+                return false;
+            }
+        }
+        
+        async function deleteIngredientFromSupabase(id) {
+            if (!supabaseClient) return false;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('ingredients')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Error deleting ingredient:', error);
+                return false;
+            }
+        }
+        
+        async function saveRecipeToSupabase(recipe) {
+            if (!supabaseClient) return false;
+            
+            try {
+                // Save recipe
+                const { error: recipeError } = await supabaseClient
+                    .from('recipes')
+                    .upsert({
+                        id: recipe.id,
+                        name: recipe.name,
+                        category: recipe.category,
+                        selling_price: recipe.sellingPrice,
+                        updated_at: new Date().toISOString()
+                    });
+                
+                if (recipeError) throw recipeError;
+                
+                // Delete old recipe ingredients
+                await supabaseClient
+                    .from('recipe_ingredients')
+                    .delete()
+                    .eq('recipe_id', recipe.id);
+                
+                // Insert new recipe ingredients
+                if (recipe.ingredients.length > 0) {
+                    const { error: ingError } = await supabaseClient
+                        .from('recipe_ingredients')
+                        .insert(recipe.ingredients.map(ing => ({
+                            recipe_id: recipe.id,
+                            ingredient_id: ing.ingredientId,
+                            quantity: ing.qty,
+                            unit: ing.unit
+                        })));
+                    
+                    if (ingError) throw ingError;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving recipe:', error);
+                return false;
+            }
+        }
+        
+        async function deleteRecipeFromSupabase(id) {
+            if (!supabaseClient) return false;
+            
+            try {
+                // Delete recipe ingredients first
+                await supabaseClient
+                    .from('recipe_ingredients')
+                    .delete()
+                    .eq('recipe_id', id);
+                
+                // Delete recipe
+                const { error } = await supabaseClient
+                    .from('recipes')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Error deleting recipe:', error);
+                return false;
+            }
+        }
+        
+        async function saveGRNToSupabase(grn) {
+            if (!supabaseClient) return false;
+            
+            try {
+                // Save GRN header
+                const { error: grnError } = await supabaseClient
+                    .from('grn_history')
+                    .insert({
+                        id: grn.id,
+                        grn_number: grn.grnNumber,
+                        date: grn.date,
+                        supplier: grn.supplier,
+                        invoice_number: grn.invoiceNumber,
+                        total: grn.total,
+                        notes: grn.notes,
+                        created_at: grn.timestamp
+                    });
+                
+                if (grnError) throw grnError;
+                
+                // Save GRN items
+                if (grn.items.length > 0) {
+                    const { error: itemsError } = await supabaseClient
+                        .from('grn_items')
+                        .insert(grn.items.map(item => ({
+                            grn_id: grn.id,
+                            ingredient_id: item.ingredientId,
+                            name: item.name,
+                            quantity: item.qty,
+                            unit: item.unit,
+                            unit_cost: item.unitCost,
+                            total: item.total,
+                            item_supplier: item.itemSupplier
+                        })));
+                    
+                    if (itemsError) throw itemsError;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving GRN:', error);
+                return false;
+            }
+        }
+        
+        async function deleteGRNFromSupabase(id) {
+            if (!supabaseClient) return false;
+            
+            try {
+                // Delete GRN items first
+                await supabaseClient
+                    .from('grn_items')
+                    .delete()
+                    .eq('grn_id', id);
+                
+                // Delete GRN
+                const { error } = await supabaseClient
+                    .from('grn_history')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Error deleting GRN:', error);
+                return false;
+            }
+        }
+        
+        async function saveConsumptionLogToSupabase(log) {
+            if (!supabaseClient) return false;
+            
+            try {
+                // Save consumption log
+                const { error: logError } = await supabaseClient
+                    .from('consumption_log')
+                    .insert({
+                        id: log.id,
+                        recipe_id: log.recipeId,
+                        recipe_name: log.recipeName,
+                        type: log.type,
+                        reason: log.reason,
+                        total_cost: log.totalCost,
+                        closing_id: log.closingId,
+                        created_at: log.timestamp
+                    });
+                
+                if (logError) throw logError;
+                
+                // Save consumption items
+                if (log.ingredients.length > 0) {
+                    const { error: itemsError } = await supabaseClient
+                        .from('consumption_log_items')
+                        .insert(log.ingredients.map(item => ({
+                            consumption_log_id: log.id,
+                            ingredient_id: item.ingredientId,
+                            name: item.name,
+                            quantity: item.qty,
+                            unit: item.unit,
+                            cost: item.cost
+                        })));
+                    
+                    if (itemsError) throw itemsError;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving consumption log:', error);
+                return false;
+            }
+        }
+        
+        async function saveClosingToSupabase(closing) {
+            if (!supabaseClient) return false;
+            
+            try {
+                // Save closing
+                const { error: closingError } = await supabaseClient
+                    .from('closing_history')
+                    .insert({
+                        id: closing.id,
+                        date: closing.date,
+                        closed_by: closing.closedBy,
+                        total_consumption_cost: closing.totalConsumptionCost,
+                        created_at: closing.timestamp
+                    });
+                
+                if (closingError) throw closingError;
+                
+                // Save closing items
+                if (closing.items.length > 0) {
+                    const { error: itemsError } = await supabaseClient
+                        .from('closing_items')
+                        .insert(closing.items.map(item => ({
+                            closing_id: closing.id,
+                            ingredient_id: item.ingredientId,
+                            name: item.name,
+                            unit: item.unit,
+                            opening: item.opening,
+                            grn_today: item.grnToday,
+                            available: item.available,
+                            physical: item.physical,
+                            consumed: item.consumed,
+                            consumption_cost: item.consumptionCost,
+                            cost_per_unit: item.costPerUnit
+                        })));
+                    
+                    if (itemsError) throw itemsError;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving closing:', error);
+                return false;
+            }
+        }
+        
+        // ==========================================
+        // LOCAL STORAGE FALLBACK
+        // ==========================================
+        
+        async function saveDataToLocalStorage() {
+            try {
+                localStorage.setItem('ovenX_inventory_data_v1', JSON.stringify(inventoryData));
+                return true;
+            } catch (error) {
+                console.error('Local storage save failed:', error);
+                return false;
+            }
+        }
+        
+        async function loadDataFromLocalStorage() {
+            try {
+                const data = localStorage.getItem('ovenX_inventory_data_v1');
+                if (data) {
+                    inventoryData = JSON.parse(data);
+                    
+                    // Fix any string numbers
+                    if (inventoryData.ingredients) {
+                        inventoryData.ingredients.forEach(ing => {
+                            ing.currentStock = Number(ing.currentStock) || 0;
+                            ing.openingStock = ing.openingStock !== undefined ? Number(ing.openingStock) : undefined;
+                            ing.minLevel = Number(ing.minLevel) || 0;
+                            ing.costPerUnit = Number(ing.costPerUnit) || 0;
+                        });
+                    }
+                    
+                    return true;
+                }
+            } catch (error) {
+                console.error('Local storage load failed:', error);
+            }
+            return false;
+        }
+        
+        // ==========================================
+        // UNIFIED SAVE FUNCTION
+        // ==========================================
+        
+        async function saveData() {
+            // Always save to local storage as backup
+            await saveDataToLocalStorage();
+            
+            // Sync to Supabase if connected
+            if (supabaseClient) {
+                updateSyncStatus('syncing', 'Syncing...');
+                // Note: Individual saves happen in their respective functions
+                updateSyncStatus('online', 'Synced');
+            }
+        }
         
         function showNotification(message, type = 'success') {
             const indicator = document.getElementById('offline-status');
             if (indicator) {
                 const originalHTML = indicator.innerHTML;
-                indicator.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
-                indicator.style.background = type === 'success' ? '#10b981' : '#ef4444';
+                const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+                const color = type === 'success' ? '#10b981' : '#ef4444';
+                
+                indicator.innerHTML = `<i class="fas fa-${icon}"></i> <span id="sync-status-text">${message}</span>`;
+                indicator.style.background = color;
+                
                 setTimeout(() => {
                     indicator.innerHTML = originalHTML;
-                    indicator.style.background = '#10b981';
+                    indicator.style.background = '';
+                    updateSyncStatus(supabaseClient ? 'online' : 'offline', supabaseClient ? 'Synced' : 'Offline');
                 }, 3000);
             }
         }
@@ -1645,17 +2117,47 @@
         // ==========================================
         
         async function initializeApp() {
-    showNotification('⏳ Connecting...');
-    const hasData = await loadDataFromStorage();
-    if (hasData) updateUIForData();
-    else showEmptyState();
-    setupDragAndDrop();
-    setInterval(saveDataToStorage, 30000);
-    window.addEventListener('beforeunload', () => saveDataToStorage());
-}
+            updateSyncStatus('syncing', 'Initializing...');
+            
+            // Initialize Supabase first
+            await initializeSupabase();
+            
+            // Setup UI
+            setupDragAndDrop();
+            updateUIForData();
+            
+            // Setup realtime subscription if connected
+            if (supabaseClient) {
+                setupRealtimeSubscription();
+            }
+            
+            // Auto-save interval
+            setInterval(saveData, 30000);
+            
+            // Save on page unload
+            window.addEventListener('beforeunload', () => saveData());
+        }
+        
+        function setupRealtimeSubscription() {
+            if (!supabaseClient) return;
+            
+            // Subscribe to ingredients changes
+            supabaseClient
+                .channel('ingredients_changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'ingredients' },
+                    (payload) => {
+                        console.log('Realtime update:', payload);
+                        // Reload data on changes from other clients
+                        loadAllDataFromSupabase().then(() => {
+                            updateUIForData();
+                        });
+                    }
+                )
+                .subscribe();
+        }
         
         function showEmptyState() {
-            // Empty state is shown by default in HTML
             document.getElementById('empty-state').classList.remove('hidden');
             document.getElementById('alerts-section').classList.add('hidden');
             document.getElementById('chart-section').classList.add('hidden');
@@ -1709,7 +2211,7 @@
         }
         
         // ==========================================
-        // EXCEL UPLOAD HANDLING - COMPLETE SOLUTION
+        // EXCEL UPLOAD HANDLING
         // ==========================================
         
         function setupDragAndDrop() {
@@ -1753,7 +2255,6 @@
                 return;
             }
             
-            // Show progress
             document.getElementById('upload-progress').style.display = 'block';
             document.getElementById('progress-bar').style.width = '30%';
             document.getElementById('progress-text').textContent = 'Reading file...';
@@ -1765,20 +2266,30 @@
                 
                 const result = processExcelData(data);
                 
-                document.getElementById('progress-bar').style.width = '90%';
-document.getElementById('progress-text').textContent = 'Saving...';
-if (result.ingredients.length > 0) {
-    inventoryData.ingredients = result.ingredients;
-}
-if (result.recipes.length > 0) {
-    inventoryData.recipes = result.recipes;
-}
-await saveDataToStorage();
-
-document.getElementById('progress-bar').style.width = '100%';
-document.getElementById('progress-text').textContent = 'Complete!';
+                document.getElementById('progress-bar').style.width = '80%';
+                document.getElementById('progress-text').textContent = 'Saving to database...';
                 
-                // Show preview
+                // Save ingredients to Supabase
+                if (result.ingredients.length > 0) {
+                    for (const ingredient of result.ingredients) {
+                        await saveIngredientToSupabase(ingredient);
+                    }
+                    inventoryData.ingredients = result.ingredients;
+                }
+                
+                // Save recipes to Supabase
+                if (result.recipes.length > 0) {
+                    for (const recipe of result.recipes) {
+                        await saveRecipeToSupabase(recipe);
+                    }
+                    inventoryData.recipes = result.recipes;
+                }
+                
+                await saveData();
+                
+                document.getElementById('progress-bar').style.width = '100%';
+                document.getElementById('progress-text').textContent = 'Complete!';
+                
                 showUploadPreview(result);
                 
                 setTimeout(() => {
@@ -1831,7 +2342,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 console.log('Ingredients data:', jsonData);
                 
                 result.ingredients = jsonData.map((row, index) => ({
-                    id: Date.now() + (index * 1000),
+                    id: generateId(),
                     name: row['Name'] || row['Ingredient'] || row['name'] || '',
                     category: (row['Category'] || row['category'] || 'general').toString().toLowerCase(),
                     unit: (row['Unit'] || row['unit'] || 'pcs').toString().toLowerCase(),
@@ -1857,7 +2368,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
                     
                     if (!recipeGroups[recipeName]) {
                         recipeGroups[recipeName] = {
-                            id: Date.now() + index,
+                            id: generateId(),
                             name: recipeName,
                             category: (row['Category'] || row['category'] || 'general').toString().toLowerCase(),
                             sellingPrice: parseFloat(row['Selling Price'] || row['Price'] || row['sellingPrice'] || 0) || 0,
@@ -1867,7 +2378,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
                     
                     const ingName = row['Ingredient Name'] || row['Ingredient'] || row['ingredient'] || '';
                     if (ingName) {
-                        // Find ingredient ID if it exists in our ingredients list
                         const existingIng = result.ingredients.find(i => 
                             i.name.toLowerCase().trim() === ingName.toString().toLowerCase().trim()
                         );
@@ -1908,7 +2418,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
         }
         
         // ==========================================
-        // TEMPLATE DOWNLOAD - COMPLETE SOLUTION
+        // TEMPLATE DOWNLOAD
         // ==========================================
         
         function downloadTemplate(type) {
@@ -2074,18 +2584,16 @@ document.getElementById('progress-text').textContent = 'Complete!';
             
             if (modalId === 'grn-modal') {
                 resetGRNForm();
-                // Ensure ingredient dropdowns are populated
                 populateGRNIngredientSelects();
-                // Set up date constraints (up to 1 month back)
                 setupGRNDateConstraints();
             }
             if (modalId === 'add-recipe-modal' && !window._editingRecipe) populateRecipeIngredientSelects();
             if (modalId === 'closing-modal') {
-    const dateField = document.querySelector('#closing-form input[name="date"]');
-    dateField.valueAsDate = new Date();
-    dateField.onchange = generateClosingTable;
-    generateClosingTable();
-}
+                const dateField = document.querySelector('#closing-form input[name="date"]');
+                dateField.valueAsDate = new Date();
+                dateField.onchange = generateClosingTable;
+                generateClosingTable();
+            }
             if (modalId === 'add-ingredient-modal') {
                 populateCategorySelect();
             }
@@ -2102,7 +2610,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
             
             if (modalId === 'add-recipe-modal') { resetRecipeForm(); window._editingRecipe = false; }
             if (modalId === 'upload-data-modal') {
-                // Reset upload modal
                 document.getElementById('upload-progress').style.display = 'none';
                 document.getElementById('upload-preview').style.display = 'none';
                 document.getElementById('excel-upload').value = '';
@@ -2170,7 +2677,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
             const ctx = document.getElementById('consumptionChart');
             if (!ctx) return;
             
-            // Destroy existing chart if any
             if (window.consumptionChartInstance) {
                 window.consumptionChartInstance.destroy();
             }
@@ -2305,17 +2811,21 @@ document.getElementById('progress-text').textContent = 'Complete!';
             renderIngredients();
         }
         
-        function adjustStock(id, change) {
+        async function adjustStock(id, change) {
             const ing = inventoryData.ingredients.find(i => String(i.id) === String(id));
             if (ing) {
                 ing.currentStock = Math.max(0, ing.currentStock + change);
-                saveDataToStorage();
+                
+                // Save to Supabase
+                await saveIngredientToSupabase(ing);
+                await saveData();
+                
                 renderIngredients();
                 refreshDashboard();
             }
         }
         
-        function saveIngredient(e) {
+        async function saveIngredient(e) {
             e.preventDefault();
             const form = e.target;
             const newIngredient = {
@@ -2330,8 +2840,12 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 location: form.location.value
             };
             
+            // Save to Supabase
+            await saveIngredientToSupabase(newIngredient);
+            
             inventoryData.ingredients.push(newIngredient);
-            saveDataToStorage();
+            await saveData();
+            
             closeModal('add-ingredient-modal');
             form.reset();
             renderIngredients();
@@ -2340,7 +2854,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
             showNotification('Ingredient added successfully!');
         }
         
-        function editIngredient(id) {
+        async function editIngredient(id) {
             const ing = inventoryData.ingredients.find(i => String(i.id) === String(id));
             if (!ing) return;
             
@@ -2354,8 +2868,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
             form.supplier.value = ing.supplier || '';
             form.location.value = ing.location || '';
             
-            // Change form submit handler
-            form.onsubmit = function(e) {
+            form.onsubmit = async function(e) {
                 e.preventDefault();
                 ing.name = form.name.value;
                 ing.category = form.category.value;
@@ -2366,7 +2879,9 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 ing.supplier = form.supplier.value;
                 ing.location = form.location.value;
                 
-                saveDataToStorage();
+                await saveIngredientToSupabase(ing);
+                await saveData();
+                
                 closeModal('add-ingredient-modal');
                 form.reset();
                 form.onsubmit = saveIngredient;
@@ -2378,10 +2893,15 @@ document.getElementById('progress-text').textContent = 'Complete!';
             openModal('add-ingredient-modal');
         }
         
-        function deleteIngredient(id) {
+        async function deleteIngredient(id) {
             if (!confirm('Are you sure you want to delete this ingredient?')) return;
+            
+            // Delete from Supabase
+            await deleteIngredientFromSupabase(id);
+            
             inventoryData.ingredients = inventoryData.ingredients.filter(i => String(i.id) !== String(id));
-            saveDataToStorage();
+            await saveData();
+            
             renderIngredients();
             refreshDashboard();
             populateCategoryFilter();
@@ -2460,7 +2980,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
             form.onsubmit = saveRecipe;
         }
         
-        function saveRecipe(e) {
+        async function saveRecipe(e) {
             e.preventDefault();
             const form = e.target;
             const rows = document.querySelectorAll('#recipe-ingredients-container .ingredient-row');
@@ -2493,8 +3013,12 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 ingredients: ingredients
             };
             
+            // Save to Supabase
+            await saveRecipeToSupabase(newRecipe);
+            
             inventoryData.recipes.push(newRecipe);
-            saveDataToStorage();
+            await saveData();
+            
             closeModal('add-recipe-modal');
             resetRecipeForm();
             renderRecipes();
@@ -2598,7 +3122,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
             }
         }
         
-        function editRecipe(id) {
+        async function editRecipe(id) {
             const recipe = inventoryData.recipes.find(r => r.id === id);
             if (!recipe) return;
             
@@ -2608,7 +3132,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
             form.category.value = recipe.category;
             form.sellingPrice.value = recipe.sellingPrice;
             
-            // Populate ingredients
             const container = document.getElementById('recipe-ingredients-container');
             container.innerHTML = '';
             
@@ -2638,10 +3161,9 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 container.appendChild(row);
             });
             
-            // Change submit handler
-            form.onsubmit = function(e) {
+            form.onsubmit = async function(e) {
                 e.preventDefault();
-                updateRecipe(e, recipe.id);
+                await updateRecipe(e, recipe.id);
             };
             
             window._editingRecipe = true;
@@ -2649,7 +3171,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
             window._editingRecipe = false;
         }
         
-        function updateRecipe(e, id) {
+        async function updateRecipe(e, id) {
             const form = e.target;
             const rows = document.querySelectorAll('#recipe-ingredients-container .ingredient-row');
             const ingredients = [];
@@ -2678,7 +3200,10 @@ document.getElementById('progress-text').textContent = 'Complete!';
                     ingredients: ingredients
                 };
                 
-                saveDataToStorage();
+                // Save to Supabase
+                await saveRecipeToSupabase(inventoryData.recipes[recipeIndex]);
+                await saveData();
+                
                 closeModal('add-recipe-modal');
                 resetRecipeForm();
                 renderRecipes();
@@ -2686,39 +3211,36 @@ document.getElementById('progress-text').textContent = 'Complete!';
             }
         }
         
-        function deleteRecipe(id) {
+        async function deleteRecipe(id) {
             if (!confirm('Delete this recipe?')) return;
+            
+            await deleteRecipeFromSupabase(id);
+            
             inventoryData.recipes = inventoryData.recipes.filter(r => r.id !== id);
-            saveDataToStorage();
+            await saveData();
+            
             renderRecipes();
             refreshDashboard();
         }
         
         // ==========================================
-        // GRN FUNCTIONS - FIXED AND ENHANCED
+        // GRN FUNCTIONS
         // ==========================================
         
-        // Global variable to track if we are editing
         let editingGRNId = null;
         
         function setupGRNDateConstraints() {
-    const dateInput = document.getElementById('grn-date-input');
-    if (!dateInput) return;
-    
-    // REMOVED: Don't block future dates
-    // const today = new Date().toISOString().split('T')[0];
-    // dateInput.setAttribute('max', today);  ← DELETE THIS LINE
-    
-    // Keep only min date (1 month back)
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    const minDate = oneMonthAgo.toISOString().split('T')[0];
-    dateInput.setAttribute('min', minDate);
-    
-    // Default to today
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
-}
+            const dateInput = document.getElementById('grn-date-input');
+            if (!dateInput) return;
+            
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            const minDate = oneMonthAgo.toISOString().split('T')[0];
+            dateInput.setAttribute('min', minDate);
+            
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
         
         function validateGRNDate(dateString) {
             if (!dateString) return false;
@@ -2731,13 +3253,11 @@ document.getElementById('progress-text').textContent = 'Complete!';
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
             oneMonthAgo.setHours(0, 0, 0, 0);
             
-            // Check if date is in the future
             if (selectedDate > today) {
                 alert('GRN date cannot be in the future');
                 return false;
             }
             
-            // Check if date is more than 1 month in the past
             if (selectedDate < oneMonthAgo) {
                 alert('GRN date cannot be more than 1 month in the past');
                 return false;
@@ -2751,14 +3271,11 @@ document.getElementById('progress-text').textContent = 'Complete!';
             const form = document.getElementById('grn-form');
             form.reset();
             
-            // Auto generate new GRN number
             const grnNum = 'GRN-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*1000);
             document.getElementById('auto-grn-number').value = grnNum;
             
-            // Setup date constraints
             setupGRNDateConstraints();
             
-            // Start with 1 clean row
             const container = document.getElementById('grn-items-container');
             container.innerHTML = createGRNRowHTML(true);
             updateGRNTotals();
@@ -2790,7 +3307,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
             const row = select.closest('.grn-item-row');
             const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(select.value));
             if (ingredient) {
-                // You can update unit display if needed
                 console.log('Selected unit:', ingredient.unit);
             }
         }
@@ -2801,13 +3317,8 @@ document.getElementById('progress-text').textContent = 'Complete!';
             ).join('');
             
             document.querySelectorAll('.grn-item-select').forEach(select => {
-                // Save current selection
                 const currentValue = select.value;
-                
-                // Update options
                 select.innerHTML = '<option value="">Select Ingredient</option>' + options;
-                
-                // Restore selection if it still exists
                 if (currentValue) {
                     select.value = currentValue;
                 }
@@ -2815,19 +3326,14 @@ document.getElementById('progress-text').textContent = 'Complete!';
         }
         
         function addGRNRow() {
-    const container = document.getElementById('grn-items-container');
-    
-    // Clear any existing event listeners by cloning container (nuclear option)
-    // Or just ensure you're not adding duplicate listeners
-    
-    const div = document.createElement('div');
-    div.innerHTML = createGRNRowHTML(false);
-    const row = div.firstElementChild;
-    
-    container.appendChild(row);
-    populateGRNIngredientSelects();
-    updateGRNTotals();
-}
+            const container = document.getElementById('grn-items-container');
+            const div = document.createElement('div');
+            div.innerHTML = createGRNRowHTML(false);
+            const row = div.firstElementChild;
+            container.appendChild(row);
+            populateGRNIngredientSelects();
+            updateGRNTotals();
+        }
         
         function removeGRNRow(button) {
             const row = button.closest('.grn-item-row');
@@ -2871,110 +3377,108 @@ document.getElementById('progress-text').textContent = 'Complete!';
             document.getElementById('grn-grand-total').textContent = formatCurrency(grandTotal);
         }
         
-        function saveGRN(e) {
-    e.preventDefault();
-    const form = e.target;
-    
-    // Check HTML5 validation first
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    // Validate date
-    const dateValue = form.date.value;
-    if (!validateGRNDate(dateValue)) {
-        return;
-    }
-    
-    // Collect all items - FIXED: Create NEW object for each row
-    const items = [];
-    let hasError = false;
-    
-    document.querySelectorAll('.grn-item-row').forEach((row, index) => {
-        const select = row.querySelector('.grn-item-select');
-        const qtyInput = row.querySelector('.grn-qty');
-        const costInput = row.querySelector('.grn-cost');
-        const supplierInput = row.querySelector('.grn-item-supplier');
-        
-        const ingredientId = select.value;
-        const qty = parseFloat(qtyInput.value) || 0;
-        const unitCost = parseFloat(costInput.value) || 0;
-        const itemSupplier = supplierInput?.value?.trim() || form.supplier.value || 'Main Supplier';
+        async function saveGRN(e) {
+            e.preventDefault();
+            const form = e.target;
+            
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const dateValue = form.date.value;
+            if (!validateGRNDate(dateValue)) {
+                return;
+            }
+            
+            const items = [];
+            let hasError = false;
+            
+            document.querySelectorAll('.grn-item-row').forEach((row, index) => {
+                const select = row.querySelector('.grn-item-select');
+                const qtyInput = row.querySelector('.grn-qty');
+                const costInput = row.querySelector('.grn-cost');
+                const supplierInput = row.querySelector('.grn-item-supplier');
+                
+                const ingredientId = select.value;
+                const qty = parseFloat(qtyInput.value) || 0;
+                const unitCost = parseFloat(costInput.value) || 0;
+                const itemSupplier = supplierInput?.value?.trim() || form.supplier.value || 'Main Supplier';
 
-        // Validate
-        if (!ingredientId || qty <= 0 || unitCost <= 0) {
-            row.style.borderColor = 'var(--danger)';
-            hasError = true;
-            return;
+                if (!ingredientId || qty <= 0 || unitCost <= 0) {
+                    row.style.borderColor = 'var(--danger)';
+                    hasError = true;
+                    return;
+                }
+                
+                row.style.borderColor = '#e5e7eb';
+
+                const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(ingredientId));
+                if (!ingredient) {
+                    alert(`Ingredient not found: ${ingredientId}`);
+                    hasError = true;
+                    return;
+                }
+
+                const newItem = {
+                    ingredientId: ingredient.id,
+                    name: ingredient.name,
+                    qty: qty,
+                    unit: ingredient.unit,
+                    unitCost: unitCost,
+                    total: qty * unitCost,
+                    itemSupplier: itemSupplier
+                };
+                
+                items.push(newItem);
+            });
+
+            if (hasError) {
+                alert('Please fill all required fields correctly for each item');
+                return;
+            }
+
+            if (items.length === 0) {
+                alert('Please add at least one item');
+                return;
+            }
+
+            // Update stock for all items
+            items.forEach(item => {
+                const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(item.ingredientId));
+                if (ingredient) {
+                    ingredient.currentStock += item.qty;
+                    // Also update in Supabase
+                    saveIngredientToSupabase(ingredient);
+                }
+            });
+
+            // Create GRN
+            const grn = {
+                id: generateId(),
+                grnNumber: form.grnNumber.value || ('GRN-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*1000)),
+                date: form.date.value || new Date().toISOString().slice(0,10),
+                supplier: form.supplier.value || 'Default Supplier',
+                invoiceNumber: form.invoiceNumber.value || '',
+                items: items,
+                total: items.reduce((sum, item) => sum + item.total, 0),
+                notes: form.notes.value || '',
+                timestamp: new Date().toISOString()
+            };
+
+            // Save to Supabase
+            await saveGRNToSupabase(grn);
+            
+            inventoryData.grnHistory.unshift(grn);
+            await saveData();
+
+            closeModal('grn-modal');
+            renderIngredients();
+            renderGRN();
+            refreshDashboard();
+
+            alert(`✅ GRN ${grn.grnNumber} saved!\nAdded ${items.length} item(s)\nTotal: ${formatCurrency(grn.total)}`);
         }
-        
-        row.style.borderColor = '#e5e7eb';
-
-        const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(ingredientId));
-        if (!ingredient) {
-            alert(`Ingredient not found: ${ingredientId}`);
-            hasError = true;
-            return;
-        }
-
-        // ✅ FIXED: Create a NEW object for each item (not reused reference)
-        const newItem = {
-            ingredientId: ingredient.id,
-            name: ingredient.name,
-            qty: qty,
-            unit: ingredient.unit,
-            unitCost: unitCost,
-            total: qty * unitCost,
-            itemSupplier: itemSupplier
-        };
-        
-        items.push(newItem); // Push the new object
-    });
-
-    if (hasError) {
-        alert('Please fill all required fields correctly for each item');
-        return;
-    }
-
-    if (items.length === 0) {
-        alert('Please add at least one item');
-        return;
-    }
-
-    // Update stock for all items
-    items.forEach(item => {
-        const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(item.ingredientId));
-        if (ingredient) {
-            ingredient.currentStock += item.qty;
-        }
-    });
-
-    // Create GRN
-    const grn = {
-        id: generateId(),
-        grnNumber: form.grnNumber.value || ('GRN-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*1000)),
-        date: form.date.value || new Date().toISOString().slice(0,10),
-        supplier: form.supplier.value || 'Default Supplier',
-        invoiceNumber: form.invoiceNumber.value || '',
-        items: items, // Now contains unique objects
-        total: items.reduce((sum, item) => sum + item.total, 0),
-        notes: form.notes.value || '',
-        timestamp: new Date().toISOString()
-    };
-
-    // Save
-    inventoryData.grnHistory.unshift(grn);
-    saveDataToStorage();
-
-    // Close and refresh
-    closeModal('grn-modal');
-    renderIngredients();
-    renderGRN();
-    refreshDashboard();
-
-    alert(`✅ GRN ${grn.grnNumber} saved!\nAdded ${items.length} item(s)\nTotal: ${formatCurrency(grn.total)}`);
-}
         
         function renderGRN() {
             const container = document.getElementById('grn-container');
@@ -2984,7 +3488,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
 
             let filtered = [...inventoryData.grnHistory];
 
-            // Only filter by date if user has actually selected something
             if (dateFilter && dateFilter.length === 10) {
                 filtered = filtered.filter(g => g.date === dateFilter);
             }
@@ -2996,7 +3499,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 );
             }
 
-            // When no date is selected → show newest first
             if (!dateFilter) {
                 filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
             }
@@ -3077,8 +3579,9 @@ document.getElementById('progress-text').textContent = 'Complete!';
             renderGRN();
         }
         
-        function deleteGRN(id) {
+        async function deleteGRN(id) {
             if (!confirm('Delete this GRN? Stock will be reverted.')) return;
+            
             const grn = inventoryData.grnHistory.find(g => String(g.id) === String(id));
             if (grn) {
                 grn.items.forEach(item => {
@@ -3086,10 +3589,15 @@ document.getElementById('progress-text').textContent = 'Complete!';
                     if (ingredient) {
                         ingredient.currentStock -= item.qty;
                         if (ingredient.currentStock < 0) ingredient.currentStock = 0;
+                        saveIngredientToSupabase(ingredient);
                     }
                 });
+                
+                await deleteGRNFromSupabase(id);
+                
                 inventoryData.grnHistory = inventoryData.grnHistory.filter(g => String(g.id) !== String(id));
-                saveDataToStorage();
+                await saveData();
+                
                 renderGRN();
                 renderIngredients();
                 refreshDashboard();
@@ -3100,7 +3608,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
             const grn = inventoryData.grnHistory.find(g => String(g.id) === String(id));
             if (!grn) return;
 
-            // Group items by supplier
             const supplierGroups = {};
             grn.items.forEach(item => {
                 const supplier = item.itemSupplier || grn.supplier || 'Main Supplier';
@@ -3110,7 +3617,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 supplierGroups[supplier].push(item);
             });
 
-            // Create HTML for each supplier section
             const supplierSections = Object.entries(supplierGroups).map(([supplier, items]) => {
                 const subtotal = items.reduce((sum, item) => sum + item.total, 0);
                 
@@ -3159,7 +3665,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 `;
             }).join('');
 
-            // Open print window
             const pw = window.open('', '_blank');
             pw.document.write(`
                 <html>
@@ -3235,7 +3740,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
             editingGRNId = id;
             openModal('grn-modal');
 
-            // Fill header info
             const form = document.getElementById('grn-form');
             form.grnNumber.value = grn.grnNumber;
             form.date.value = grn.date;
@@ -3243,7 +3747,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
             form.invoiceNumber.value = grn.invoiceNumber || '';
             form.notes.value = grn.notes || '';
 
-            // Clear and fill items
             const container = document.getElementById('grn-items-container');
             container.innerHTML = '';
 
@@ -3252,7 +3755,6 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 div.innerHTML = createGRNRowHTML(index === 0);
                 const row = div.firstElementChild;
                 
-                // Set values for this row
                 row.querySelector('.grn-item-select').value = item.ingredientId;
                 row.querySelector('.grn-item-supplier').value = item.itemSupplier || '';
                 const numInputs = row.querySelectorAll('input[type="number"]');
@@ -3260,24 +3762,22 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 numInputs[1].value = item.unitCost;
                 
                 container.appendChild(row);
-                updateGRNRowTotal(numInputs[0]); // Trigger calculation
+                updateGRNRowTotal(numInputs[0]);
             });
 
             updateGRNTotals();
 
-            // Change form submit handler for editing
             form.onsubmit = function(e) {
                 e.preventDefault();
                 updateGRN(e, id);
             };
         }
         
-        function updateGRN(e, id) {
+        async function updateGRN(e, id) {
             const form = e.target;
             const grn = inventoryData.grnHistory.find(g => String(g.id) === String(id));
             if (!grn) return;
 
-            // Validate date
             const dateValue = form.date.value;
             if (!validateGRNDate(dateValue)) {
                 return;
@@ -3338,25 +3838,31 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 if (ingredient) ingredient.currentStock += newItem.qty;
             });
 
+            // Delete old GRN and save new one
+            await deleteGRNFromSupabase(id);
+            
+            const updatedGRN = {
+                id: id,
+                grnNumber: form.grnNumber.value,
+                date: form.date.value,
+                supplier: form.supplier.value,
+                invoiceNumber: form.invoiceNumber.value || '',
+                items: items,
+                total: items.reduce((sum, i) => sum + i.total, 0),
+                notes: form.notes.value || '',
+                timestamp: grn.timestamp
+            };
+            
+            await saveGRNToSupabase(updatedGRN);
+            
             const idx = inventoryData.grnHistory.findIndex(g => String(g.id) === String(id));
             if (idx !== -1) {
-                inventoryData.grnHistory[idx] = {
-                    id: id,
-                    grnNumber: form.grnNumber.value,
-                    date: form.date.value,
-                    supplier: form.supplier.value,
-                    invoiceNumber: form.invoiceNumber.value || '',
-                    items: items,
-                    total: items.reduce((sum, i) => sum + i.total, 0),
-                    notes: form.notes.value || '',
-                    timestamp: grn.timestamp
-                };
+                inventoryData.grnHistory[idx] = updatedGRN;
             }
 
-            saveDataToStorage();
+            await saveData();
             closeModal('grn-modal');
             
-            // Reset form handler
             form.onsubmit = saveGRN;
             editingGRNId = null;
             
@@ -3370,13 +3876,12 @@ document.getElementById('progress-text').textContent = 'Complete!';
         // CONSUMPTION FUNCTIONS
         // ==========================================
         
-        function simulateRecipeSale(recipeId) {
+        async function simulateRecipeSale(recipeId) {
             const recipe = inventoryData.recipes.find(r => r.id === recipeId);
             if (!recipe) return;
             
             const insufficient = [];
             
-            // Check stock for all ingredients
             recipe.ingredients.forEach(ing => {
                 const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(ing.ingredientId));
                 if (ingredient && ingredient.currentStock < ing.qty) {
@@ -3389,11 +3894,11 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 return;
             }
             
-            // Deduct stock
             recipe.ingredients.forEach(ing => {
                 const ingredient = inventoryData.ingredients.find(i => i.id === ing.ingredientId);
                 if (ingredient) {
                     ingredient.currentStock -= ing.qty;
+                    saveIngredientToSupabase(ingredient);
                 }
             });
             
@@ -3403,6 +3908,7 @@ document.getElementById('progress-text').textContent = 'Complete!';
                 recipeId: recipe.id,
                 recipeName: recipe.name,
                 type: 'sale',
+                reason: 'manual_sale',
                 ingredients: recipe.ingredients.map(ing => {
                     const ingredient = inventoryData.ingredients.find(i => i.id === ing.ingredientId);
                     const costPerUnit = ingredient ? ingredient.costPerUnit : 0;
@@ -3413,11 +3919,17 @@ document.getElementById('progress-text').textContent = 'Complete!';
                         unit: ing.unit,
                         cost: ing.qty * costPerUnit
                     };
-                })
+                }),
+                totalCost: recipe.ingredients.reduce((sum, ing) => {
+                    const ingredient = inventoryData.ingredients.find(i => i.id === ing.ingredientId);
+                    return sum + (ing.qty * (ingredient ? ingredient.costPerUnit : 0));
+                }, 0)
             };
             
+            await saveConsumptionLogToSupabase(logEntry);
+            
             inventoryData.consumptionLog.unshift(logEntry);
-            saveDataToStorage();
+            await saveData();
             
             renderIngredients();
             renderConsumption();
@@ -3439,114 +3951,112 @@ document.getElementById('progress-text').textContent = 'Complete!';
         }
         
         function renderConsumptionLive() {
-    const container = document.getElementById('consumption-feed');
-    if (!container) return;
-    
-    if (inventoryData.consumptionLog.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: var(--gray);">
-                <i class="fas fa-clipboard-check" style="font-size: 64px; margin-bottom: 20px;"></i>
-                <h3>No Consumption Data Yet</h3>
-                <p>Complete a <strong>Night Closing</strong> to see daily consumption.</p>
-                <p style="font-size: 13px; margin-top: 15px; color: var(--primary);">
-                    Formula: Opening + GRN - Closing = Consumption
-                </p>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = inventoryData.consumptionLog.slice(0, 50).map(log => {
-        // Style based on type
-        const isAuto = log.type === 'auto';
-        const icon = isAuto ? 'fa-moon' : 'fa-utensils';
-        const color = isAuto ? 'var(--primary)' : 'var(--success)';
-        const label = isAuto ? 'DAILY CLOSING' : 'RECIPE SALE';
-        
-        return `
-            <div style="background: white; border: 2px solid ${isAuto ? '#f37021' : '#e5e7eb'}; border-radius: 15px; padding: 20px; margin-bottom: 15px; position: relative;">
-                <div style="position: absolute; top: -10px; right: 15px; background: ${color}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800;">
-                    ${label}
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f3f4f6; padding-bottom: 15px;">
-                    <div>
-                        <span style="font-weight: 900; font-size: 16px;">${log.recipeName}</span>
-                        ${log.reason && log.reason !== 'daily_closing' ? `<div style="font-size: 12px; color: var(--gray); margin-top: 4px;">Reason: ${log.reason}</div>` : ''}
+            const container = document.getElementById('consumption-feed');
+            if (!container) return;
+            
+            if (inventoryData.consumptionLog.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 60px; color: var(--gray);">
+                        <i class="fas fa-clipboard-check" style="font-size: 64px; margin-bottom: 20px;"></i>
+                        <h3>No Consumption Data Yet</h3>
+                        <p>Complete a <strong>Night Closing</strong> to see daily consumption.</p>
+                        <p style="font-size: 13px; margin-top: 15px; color: var(--primary);">
+                            Formula: Opening + GRN - Closing = Consumption
+                        </p>
                     </div>
-                    <div style="text-align: right;">
-                        <div style="color: var(--gray); font-size: 13px;">${new Date(log.timestamp).toLocaleString()}</div>
-                        <div style="font-weight: 900; color: var(--dark); font-size: 18px; margin-top: 5px;">
-                            ${formatCurrency(log.totalCost || log.ingredients.reduce((sum, i) => sum + (i.cost || 0), 0))}
+                `;
+                return;
+            }
+            
+            container.innerHTML = inventoryData.consumptionLog.slice(0, 50).map(log => {
+                const isAuto = log.type === 'auto';
+                const icon = isAuto ? 'fa-moon' : 'fa-utensils';
+                const color = isAuto ? 'var(--primary)' : 'var(--success)';
+                const label = isAuto ? 'DAILY CLOSING' : 'RECIPE SALE';
+                
+                return `
+                    <div style="background: white; border: 2px solid ${isAuto ? '#f37021' : '#e5e7eb'}; border-radius: 15px; padding: 20px; margin-bottom: 15px; position: relative;">
+                        <div style="position: absolute; top: -10px; right: 15px; background: ${color}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800;">
+                            ${label}
                         </div>
-                    </div>
-                </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    ${log.ingredients.map(ing => `
-                        <div style="display: flex; justify-content: space-between; padding: 10px 12px; background: #f8fafc; border-radius: 8px; align-items: center;">
-                            <span style="font-weight: 600;">${ing.name}</span>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f3f4f6; padding-bottom: 15px;">
+                            <div>
+                                <span style="font-weight: 900; font-size: 16px;">${log.recipeName}</span>
+                                ${log.reason && log.reason !== 'daily_closing' ? `<div style="font-size: 12px; color: var(--gray); margin-top: 4px;">Reason: ${log.reason}</div>` : ''}
+                            </div>
                             <div style="text-align: right;">
-                                <span style="font-weight: 900; color: var(--danger);">-${ing.qty.toFixed(3)} ${ing.unit}</span>
-                                <span style="font-size: 12px; color: var(--gray); margin-left: 10px;">(${formatCurrency(ing.cost || (ing.qty * (ing.costPerUnit || 0)))})</span>
+                                <div style="color: var(--gray); font-size: 13px;">${new Date(log.timestamp).toLocaleString()}</div>
+                                <div style="font-weight: 900; color: var(--dark); font-size: 18px; margin-top: 5px;">
+                                    ${formatCurrency(log.totalCost || log.ingredients.reduce((sum, i) => sum + (i.cost || 0), 0))}
+                                </div>
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-                 <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-                    <button onclick="deleteConsumptionLog('${log.id}')" style="background:#fee2e2;color:#991b1b;border:none;padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${log.ingredients.map(ing => `
+                                <div style="display: flex; justify-content: space-between; padding: 10px 12px; background: #f8fafc; border-radius: 8px; align-items: center;">
+                                    <span style="font-weight: 600;">${ing.name}</span>
+                                    <div style="text-align: right;">
+                                        <span style="font-weight: 900; color: var(--danger);">-${ing.qty.toFixed(3)} ${ing.unit}</span>
+                                        <span style="font-size: 12px; color: var(--gray); margin-left: 10px;">(${formatCurrency(ing.cost || (ing.qty * (ing.costPerUnit || 0)))})</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                         <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+                            <button onclick="deleteConsumptionLog('${log.id}')" style="background:#fee2e2;color:#991b1b;border:none;padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
         
         function renderConsumptionByItem() {
-    const tbody = document.getElementById('consumption-by-item-body');
-    if (!tbody) return;
-    
-    // Aggregate all consumption (both auto from closing and manual sales)
-    const itemMap = {};
-    
-    inventoryData.consumptionLog.forEach(log => {
-        log.ingredients.forEach(ing => {
-            if (!itemMap[ing.ingredientId]) {
-                itemMap[ing.ingredientId] = {
-                    name: ing.name,
-                    unit: ing.unit,
-                    totalQty: 0,
-                    totalCost: 0,
-                    lastUsed: log.timestamp,
-                    count: 0
-                };
-            }
-            itemMap[ing.ingredientId].totalQty += ing.qty;
-            itemMap[ing.ingredientId].totalCost += ing.cost || 0;
-            itemMap[ing.ingredientId].count++;
+            const tbody = document.getElementById('consumption-by-item-body');
+            if (!tbody) return;
             
-            if (new Date(log.timestamp) > new Date(itemMap[ing.ingredientId].lastUsed)) {
-                itemMap[ing.ingredientId].lastUsed = log.timestamp;
+            const itemMap = {};
+            
+            inventoryData.consumptionLog.forEach(log => {
+                log.ingredients.forEach(ing => {
+                    if (!itemMap[ing.ingredientId]) {
+                        itemMap[ing.ingredientId] = {
+                            name: ing.name,
+                            unit: ing.unit,
+                            totalQty: 0,
+                            totalCost: 0,
+                            lastUsed: log.timestamp,
+                            count: 0
+                        };
+                    }
+                    itemMap[ing.ingredientId].totalQty += ing.qty;
+                    itemMap[ing.ingredientId].totalCost += ing.cost || 0;
+                    itemMap[ing.ingredientId].count++;
+                    
+                    if (new Date(log.timestamp) > new Date(itemMap[ing.ingredientId].lastUsed)) {
+                        itemMap[ing.ingredientId].lastUsed = log.timestamp;
+                    }
+                });
+            });
+            
+            if (Object.keys(itemMap).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;">No consumption data. Complete night closing first.</td></tr>';
+                return;
             }
-        });
-    });
-    
-    if (Object.keys(itemMap).length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;">No consumption data. Complete night closing first.</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = Object.values(itemMap).map(item => `
-        <tr>
-            <td style="font-weight: 700;">${item.name}</td>
-            <td style="font-weight: 900; color: var(--danger);">${item.totalQty.toFixed(3)}</td>
-            <td><span class="unit-badge">${item.unit}</span></td>
-            <td class="cost-display">${formatCurrency(item.totalCost)}</td>
-            <td style="font-size: 13px; color: var(--gray);">${new Date(item.lastUsed).toLocaleDateString()}</td>
-        </tr>
-    `).join('');
-}
+            
+            tbody.innerHTML = Object.values(itemMap).map(item => `
+                <tr>
+                    <td style="font-weight: 700;">${item.name}</td>
+                    <td style="font-weight: 900; color: var(--danger);">${item.totalQty.toFixed(3)}</td>
+                    <td><span class="unit-badge">${item.unit}</span></td>
+                    <td class="cost-display">${formatCurrency(item.totalCost)}</td>
+                    <td style="font-size: 13px; color: var(--gray);">${new Date(item.lastUsed).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
         
         function renderConsumptionByRecipe() {
             const tbody = document.getElementById('consumption-by-recipe-body');
@@ -3597,184 +4107,164 @@ document.getElementById('progress-text').textContent = 'Complete!';
         }
         
         // ==========================================
-        // UPDATED NIGHT CLOSING LOGIC
+        // NIGHT CLOSING LOGIC
         // ==========================================
         function generateClosingTable() {
-    const tbody = document.getElementById('closing-table-body');
-    if (!tbody) return;
+            const tbody = document.getElementById('closing-table-body');
+            if (!tbody) return;
 
-const dateInput = document.querySelector('#closing-form input[name="date"]');
-const today = dateInput ? dateInput.value : new Date().toISOString().slice(0, 10);
-    tbody.innerHTML = inventoryData.ingredients.map(ing => {
-        // CRITICAL FIX: Ensure proper number conversion
-        let opening = 0;
-        
-        if (ing.openingStock !== undefined && ing.openingStock !== null) {
-            opening = Number(ing.openingStock);
-        } else {
-            opening = Number(ing.currentStock) || 0;
+            const dateInput = document.querySelector('#closing-form input[name="date"]');
+            const today = dateInput ? dateInput.value : new Date().toISOString().slice(0, 10);
+            
+            tbody.innerHTML = inventoryData.ingredients.map(ing => {
+                let opening = 0;
+                
+                if (ing.openingStock !== undefined && ing.openingStock !== null) {
+                    opening = Number(ing.openingStock);
+                } else {
+                    opening = Number(ing.currentStock) || 0;
+                }
+                
+                if (isNaN(opening)) opening = 0;
+
+                const fromDate = ing.openingStockDate || today;
+                const grnToday = getGRNForDate(ing.id, today, fromDate);
+                const available = opening + grnToday;
+
+                if (ing.name.includes('Peri')) {
+                    console.log(`Night Closing ${ing.name}:`, {
+                        openingStock: ing.openingStock,
+                        parsedOpening: opening,
+                        grnToday: grnToday,
+                        available: available,
+                        unit: ing.unit
+                    });
+                }
+
+                return `
+                    <tr data-ingredient-id="${ing.id}">
+                        <td style="font-weight:700;">${ing.name}</td>
+                        <td style="color:#1e40af;font-weight:700;">${opening.toFixed(3)}</td>
+                        <td style="color:#10b981;font-weight:700;">+${grnToday.toFixed(3)}</td>
+                        <td style="font-weight:800;">${available.toFixed(3)}</td>
+                        <td>
+                            <input type="number"
+                                   class="form-input physical-input"
+                                   name="physical_${ing.id}"
+                                   step="0.001"
+                                   style="width:130px;text-align:right;"
+                                   placeholder="${available.toFixed(3)}">
+                        </td>
+                        <td><span class="unit-badge">${ing.unit}</span></td>
+                    </tr>
+                `;
+            }).join('');
         }
-        
-        // Validate it's a real number
-        if (isNaN(opening)) opening = 0;
 
-// Get opening stock date to know from when to count GRNs
-const fromDate = ing.openingStockDate || today;
-const grnToday = getGRNForDate(ing.id, today, fromDate);        const available = opening + grnToday;
-        
-        // DEBUG for Peri Peri
-        if (ing.name.includes('Peri')) {
-            console.log(`Night Closing ${ing.name}:`, {
-                openingStock: ing.openingStock,
-                parsedOpening: opening,
-                grnToday: grnToday,
-                available: available,
-                unit: ing.unit
+        async function saveClosing(e) {
+            e.preventDefault();
+            const form = e.target;
+            const closingDate = form.date.value;
+            const closingItems = [];
+            let totalConsumptionCost = 0;
+            const consumptionEntries = [];
+
+            inventoryData.ingredients.forEach(ing => {
+                let opening = 0;
+                if (ing.openingStock !== undefined && ing.openingStock !== null && !isNaN(ing.openingStock)) {
+                    opening = parseFloat(parseFloat(ing.openingStock).toFixed(3));
+                } else {
+                    opening = parseFloat(parseFloat(ing.currentStock || 0).toFixed(3));
+                }
+
+                const fromDate = ing.openingStockDate || closingDate;
+                const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
+                const available = parseFloat((opening + grnToday).toFixed(3));
+
+                const physicalInput = form[`physical_${ing.id}`];
+                let physical = available;
+
+                if (physicalInput && physicalInput.value !== "" && physicalInput.value !== null) {
+                    physical = parseFloat(parseFloat(physicalInput.value).toFixed(3));
+                }
+
+                const consumed = parseFloat((available - physical).toFixed(3));
+                const consumptionCost = parseFloat((consumed * ing.costPerUnit).toFixed(2));
+
+                closingItems.push({
+                    ingredientId: ing.id,
+                    name: ing.name,
+                    unit: ing.unit,
+                    opening: opening,
+                    grnToday: grnToday,
+                    available: available,
+                    physical: physical,
+                    consumed: consumed,
+                    consumptionCost: consumptionCost,
+                    costPerUnit: ing.costPerUnit
+                });
+
+                totalConsumptionCost += consumptionCost;
+
+                if (consumed > 0.001) {
+                    consumptionEntries.push({
+                        ingredientId: ing.id,
+                        name: ing.name,
+                        qty: consumed,
+                        unit: ing.unit,
+                        cost: consumptionCost,
+                        reason: 'Daily Usage'
+                    });
+                }
+
+                ing.currentStock = physical;
+                ing.openingStock = physical;
+                ing.openingStockDate = closingDate;
+                
+                // Update ingredient in Supabase
+                saveIngredientToSupabase(ing);
             });
+
+            const closing = {
+                id: generateId(),
+                date: closingDate,
+                closedBy: form.closedBy.value,
+                items: closingItems,
+                totalConsumptionCost: totalConsumptionCost,
+                timestamp: new Date().toISOString()
+            };
+
+            if (consumptionEntries.length > 0) {
+                const consumptionLogEntry = {
+                    id: generateId(),
+                    timestamp: new Date(closingDate + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
+                    type: 'auto',
+                    reason: 'daily_closing',
+                    recipeName: `Daily Consumption - ${formatDate(closingDate)}`,
+                    ingredients: consumptionEntries,
+                    totalCost: totalConsumptionCost,
+                    closingId: closing.id
+                };
+                
+                await saveConsumptionLogToSupabase(consumptionLogEntry);
+                inventoryData.consumptionLog.unshift(consumptionLogEntry);
+            }
+
+            await saveClosingToSupabase(closing);
+            inventoryData.closingHistory.unshift(closing);
+
+            await saveData();
+            closeModal('closing-modal');
+            renderIngredients();
+            refreshDashboard();
+            loadClosingData();
+            
+            if (document.getElementById('consumption').classList.contains('active')) {
+                renderConsumption();
+            }
+            
+            showNotification(`🌙 Night Closing Complete! Consumption: ${formatCurrency(totalConsumptionCost)}`);
         }
-
-        return `
-            <tr data-ingredient-id="${ing.id}">
-                <td style="font-weight:700;">${ing.name}</td>
-                <td style="color:#1e40af;font-weight:700;">${opening.toFixed(3)}</td>
-                <td style="color:#10b981;font-weight:700;">+${grnToday.toFixed(3)}</td>
-                <td style="font-weight:800;">${available.toFixed(3)}</td>
-                <td>
-                    <input type="number"
-       class="form-input physical-input"
-       name="physical_${ing.id}"
-       step="0.001"
-       style="width:130px;text-align:right;"
-       placeholder="${available.toFixed(3)}">
-                                    </td>
-                <td><span class="unit-badge">${ing.unit}</span></td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// Add validation function
-function validatePhysicalInput(input, maxAvailable) {
-    const val = parseFloat(input.value);
-    if (isNaN(val) || val < 0) {
-        input.value = '';
-        return;
-    }
-    if (val > maxAvailable) {
-        alert(`Physical count cannot exceed available stock (${maxAvailable.toFixed(3)})`);
-        input.value = maxAvailable.toFixed(3);
-    }
-}
-
-        function saveClosing(e) {
-    e.preventDefault();
-    const form = e.target;
-    const closingDate = form.date.value;
-    const closingItems = [];
-    let totalConsumptionCost = 0;
-    const consumptionEntries = [];
-
-    inventoryData.ingredients.forEach(ing => {
-        // FIX: Properly parse opening stock with 3 decimal precision
-        let opening = 0;
-        if (ing.openingStock !== undefined && ing.openingStock !== null && !isNaN(ing.openingStock)) {
-            opening = parseFloat(parseFloat(ing.openingStock).toFixed(3)); // Force 3 decimal precision
-        } else {
-            opening = parseFloat(parseFloat(ing.currentStock || 0).toFixed(3));
-        }
-
-        // Get today's GRN
-const fromDate = ing.openingStockDate || closingDate;
-const grnToday = getGRNForDate(ing.id, closingDate, fromDate);        
-        // Calculate available
-        const available = parseFloat((opening + grnToday).toFixed(3));
-
-        // Get physical count from form
-        const physicalInput = form[`physical_${ing.id}`];
-        let physical = available; // Default to no variance
-
-        if (physicalInput && physicalInput.value !== "" && physicalInput.value !== null) {
-            physical = parseFloat(parseFloat(physicalInput.value).toFixed(3));
-        }
-
-                // Calculate consumed with proper precision
-        const consumed = parseFloat((available - physical).toFixed(3));
-        const consumptionCost = parseFloat((consumed * ing.costPerUnit).toFixed(2));
-
-        closingItems.push({
-            ingredientId: ing.id,
-            name: ing.name,
-            unit: ing.unit,
-            opening: opening,
-            grnToday: grnToday,
-            available: available,
-            physical: physical,
-            consumed: consumed,
-            consumptionCost: consumptionCost,
-            costPerUnit: ing.costPerUnit
-        });
-
-        totalConsumptionCost += consumptionCost;
-
-        // Create consumption entry if there was usage
-        if (consumed > 0.001) { // Threshold to avoid floating point noise
-            consumptionEntries.push({
-                ingredientId: ing.id,
-                name: ing.name,
-                qty: consumed,
-                unit: ing.unit,
-                cost: consumptionCost,
-                reason: 'Daily Usage'
-            });
-        }
-
-        // Carry forward: set closing as tomorrow's opening
-        ing.currentStock = physical;
-        ing.openingStock = physical; // This becomes tomorrow's opening
-        ing.openingStockDate = closingDate;
-    });
-
-    // Save closing record
-    const closing = {
-        id: generateId(),
-        date: closingDate,
-        closedBy: form.closedBy.value,
-        items: closingItems,
-        totalConsumptionCost: totalConsumptionCost,
-        timestamp: new Date().toISOString()
-    };
-
-    inventoryData.closingHistory.unshift(closing);
-
-    // Auto-create consumption log entry
-    if (consumptionEntries.length > 0) {
-        const consumptionLogEntry = {
-            id: generateId(),
-            timestamp: new Date(closingDate + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
-            type: 'auto',
-            reason: 'daily_closing',
-            recipeName: `Daily Consumption - ${formatDate(closingDate)}`,
-            ingredients: consumptionEntries,
-            totalCost: totalConsumptionCost,
-            closingId: closing.id
-        };
-        
-        inventoryData.consumptionLog.unshift(consumptionLogEntry);
-    }
-
-    saveDataToStorage();
-    closeModal('closing-modal');
-    renderIngredients();
-    refreshDashboard();
-    loadClosingData();
-    
-    if (document.getElementById('consumption').classList.contains('active')) {
-        renderConsumption();
-    }
-    
-    showNotification(`🌙 Night Closing Complete! Consumption: ${formatCurrency(totalConsumptionCost)}`);
-}
-        
         
         function loadClosingData() {
             const dateFilter = document.getElementById('closing-date-filter')?.value;
@@ -3885,104 +4375,94 @@ const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
         // ==========================================
         
         function showStorageStatus() {
-    alert(`STORAGE STATUS ✅\n\n` +
-          `Ingredients: ${inventoryData.ingredients.length}\n` +
-          `Recipes: ${inventoryData.recipes.length}\n` +
-          `GRNs: ${inventoryData.grnHistory.length}\n` +
-          `Consumption Logs: ${inventoryData.consumptionLog.length}\n` +
-          `Closing History: ${inventoryData.closingHistory.length}\n\n` +
-          `Storage: Supabase (PostgreSQL)\n` +
-          `Project: ypziyhlozwtziurdeuxb\n` +
-          `Real-time: ✅ Active`);
-}
+            const isConnected = supabaseClient !== null;
+            alert(`STORAGE STATUS ${isConnected ? '✅' : '❌'}\n\n` +
+                  `Ingredients: ${inventoryData.ingredients.length}\n` +
+                  `Recipes: ${inventoryData.recipes.length}\n` +
+                  `GRNs: ${inventoryData.grnHistory.length}\n` +
+                  `Consumption Logs: ${inventoryData.consumptionLog.length}\n` +
+                  `Closing History: ${inventoryData.closingHistory.length}\n\n` +
+                  `Storage: ${isConnected ? 'Supabase (PostgreSQL)' : 'Local Only'}\n` +
+                  `Project: ypziyhlozwtziurdeuxb\n` +
+                  `Real-time: ${isConnected ? '✅ Active' : '❌ Offline'}`);
+        }
         
         function logout() {
-    if (confirm('Logout? All data is saved to Supabase.')) { location.reload(); }
-}
+            if (confirm('Logout? All data is saved to Supabase.')) { location.reload(); }
+        }
         
         // ==========================================
         // INITIALIZE APP
         // ==========================================
         
         document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-        overlay.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
-    });
-    updateDateFilterHint();
-});
-
-// Supabase already loaded in head
+            initializeApp();
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
+            });
+            updateDateFilterHint();
+        });
         
-        // Get total GRN received for a specific ingredient on a specific date
         function getGRNForDate(ingredientId, date, fromDate = null) {
-    let total = 0;
-    inventoryData.grnHistory.forEach(grn => {
-        const grnDate = grn.date;
-        const matchesDate = fromDate 
-            ? (grnDate >= fromDate && grnDate <= date)
-            : grnDate === date;
-        
-        if (matchesDate) {
-            grn.items.forEach(item => {
-                if (String(item.ingredientId) === String(ingredientId)) {
-                    total += item.qty;
+            let total = 0;
+            inventoryData.grnHistory.forEach(grn => {
+                const grnDate = grn.date;
+                const matchesDate = fromDate 
+                    ? (grnDate >= fromDate && grnDate <= date)
+                    : grnDate === date;
+                
+                if (matchesDate) {
+                    grn.items.forEach(item => {
+                        if (String(item.ingredientId) === String(ingredientId)) {
+                            total += item.qty;
+                        }
+                    });
                 }
             });
+            return total;
         }
-    });
-    return total;
-}
 
-        // Populate opening stock modal table
         function populateOpeningStockTable() {
-    const tbody = document.getElementById('opening-stock-table-body');
-    if (!tbody) return;
-    
-    tbody.innerHTML = inventoryData.ingredients.map(ing => {
-        // CRITICAL FIX: Ensure we're working with numbers, not strings
-        const currentStock = Number(ing.currentStock) || 0;
-        
-        // Get opening stock - ensure it's a number
-        let openingStockValue = 0;
-        if (ing.openingStock !== undefined && ing.openingStock !== null) {
-            openingStockValue = Number(ing.openingStock);
-        } else {
-            openingStockValue = currentStock;
+            const tbody = document.getElementById('opening-stock-table-body');
+            if (!tbody) return;
+            
+            tbody.innerHTML = inventoryData.ingredients.map(ing => {
+                const currentStock = Number(ing.currentStock) || 0;
+                let openingStockValue = 0;
+                if (ing.openingStock !== undefined && ing.openingStock !== null) {
+                    openingStockValue = Number(ing.openingStock);
+                } else {
+                    openingStockValue = currentStock;
+                }
+                
+                if (ing.name.includes('Peri')) {
+                    console.log(`Populating ${ing.name}:`, {
+                        rawOpening: ing.openingStock,
+                        parsedOpening: openingStockValue,
+                        currentStock: currentStock,
+                        unit: ing.unit
+                    });
+                }
+                
+                return `
+                    <tr data-ingredient-id="${ing.id}">
+                        <td style="padding:12px 15px;font-weight:700;">${ing.name}</td>
+                        <td style="padding:12px 15px;color:#6b7280;">${currentStock.toFixed(3)}</td>
+                        <td style="padding:12px 15px;">
+                            <input type="number" 
+                                   class="form-input opening-stock-input" 
+                                   id="opening_${ing.id}" 
+                                   step="0.001"
+                                   min="0"
+                                   value="${openingStockValue}"
+                                   style="width:130px;text-align:right;">
+                        </td>
+                        <td style="padding:12px 15px;"><span class="unit-badge">${ing.unit}</span></td>
+                    </tr>
+                `;
+            }).join('');
         }
-        
-        // DEBUG: Log any suspicious values
-        if (ing.name.includes('Peri')) {
-            console.log(`Populating ${ing.name}:`, {
-                rawOpening: ing.openingStock,
-                parsedOpening: openingStockValue,
-                currentStock: currentStock,
-                unit: ing.unit
-            });
-        }
-        
-        // FIX: Don't use toFixed() for input values - let the number input handle it
-        // Only use toFixed for display text, not for input value attribute
-        return `
-            <tr data-ingredient-id="${ing.id}">
-                <td style="padding:12px 15px;font-weight:700;">${ing.name}</td>
-                <td style="padding:12px 15px;color:#6b7280;">${currentStock.toFixed(3)}</td>
-                <td style="padding:12px 15px;">
-                    <input type="number" 
-                           class="form-input opening-stock-input" 
-                           id="opening_${ing.id}" 
-                           step="0.001"
-                           min="0"
-                           value="${openingStockValue}"
-                           style="width:130px;text-align:right;">
-                </td>
-                <td style="padding:12px 15px;"><span class="unit-badge">${ing.unit}</span></td>
-            </tr>
-        `;
-    }).join('');
-}
 
-        // Filter opening stock table by search
         function filterOpeningTable() {
             const val = document.getElementById('opening-stock-search').value.toLowerCase();
             document.querySelectorAll('#opening-stock-table-body tr').forEach(row => {
@@ -3991,42 +4471,40 @@ const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
             });
         }
 
-        // Save opening stock
-        function saveOpeningStock() {
-    const date = document.getElementById('opening-stock-date').value || new Date().toISOString().slice(0,10);
-    
-    inventoryData.ingredients.forEach(ing => {
-        const input = document.getElementById(`opening_${ing.id}`);
-        if (input) {
-            // CRITICAL FIX: Parse as number, don't use toFixed() here
-            const rawValue = input.value;
-            const val = Number(rawValue);
+        async function saveOpeningStock() {
+            const date = document.getElementById('opening-stock-date').value || new Date().toISOString().slice(0,10);
             
-            if (!isNaN(val) && val >= 0) {
-                // Store as pure number
-                ing.openingStock = val;
-                ing.openingStockDate = date;
-                // Sync current stock to opening
-                ing.currentStock = val;
-                
-                // DEBUG
-                if (ing.name.includes('Peri')) {
-                    console.log(`Saved ${ing.name}:`, {
-                        inputValue: rawValue,
-                        savedValue: val,
-                        unit: ing.unit
-                    });
+            inventoryData.ingredients.forEach(ing => {
+                const input = document.getElementById(`opening_${ing.id}`);
+                if (input) {
+                    const rawValue = input.value;
+                    const val = Number(rawValue);
+                    
+                    if (!isNaN(val) && val >= 0) {
+                        ing.openingStock = val;
+                        ing.openingStockDate = date;
+                        ing.currentStock = val;
+                        
+                        if (ing.name.includes('Peri')) {
+                            console.log(`Saved ${ing.name}:`, {
+                                inputValue: rawValue,
+                                savedValue: val,
+                                unit: ing.unit
+                            });
+                        }
+                        
+                        // Save to Supabase
+                        saveIngredientToSupabase(ing);
+                    }
                 }
-            }
+            });
+            
+            await saveData();
+            closeModal('opening-stock-modal');
+            renderIngredients();
+            refreshDashboard();
+            showNotification('✅ Opening stock saved!');
         }
-    });
-    
-    saveDataToStorage();
-    closeModal('opening-stock-modal');
-    renderIngredients();
-    refreshDashboard();
-    showNotification('✅ Opening stock saved!');
-}
         
         function updateDateFilterHint() {
             const input = document.getElementById('grn-date-filter');
@@ -4036,17 +4514,24 @@ const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
             }
         }
 
-        // Call it when page loads and when filter changes
         document.addEventListener('DOMContentLoaded', updateDateFilterHint);
         document.getElementById('grn-date-filter')?.addEventListener('change', updateDateFilterHint);
-    function deleteConsumptionLog(id) {
-    if (!confirm('Delete this consumption entry?')) return;
-    inventoryData.consumptionLog = inventoryData.consumptionLog.filter(c => String(c.id) !== String(id));
-    saveDataToStorage();
-    renderConsumptionLive();
-    refreshDashboard();
-    showNotification('Consumption entry deleted');
-}
+        
+        async function deleteConsumptionLog(id) {
+            if (!confirm('Delete this consumption entry?')) return;
+            
+            // Delete from Supabase
+            if (supabaseClient) {
+                await supabaseClient.from('consumption_log_items').delete().eq('consumption_log_id', id);
+                await supabaseClient.from('consumption_log').delete().eq('id', id);
+            }
+            
+            inventoryData.consumptionLog = inventoryData.consumptionLog.filter(c => String(c.id) !== String(id));
+            await saveData();
+            renderConsumptionLive();
+            refreshDashboard();
+            showNotification('Consumption entry deleted');
+        }
     </script>
 </body>
 </html>
