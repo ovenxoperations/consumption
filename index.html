@@ -973,6 +973,7 @@
         </div>
 
         <!-- GRN TAB -->
+                <!-- GRN TAB -->
         <div id="grn" class="tab-content">
             <div id="grn-empty" class="card empty-state">
                 <i class="fas fa-truck-loading empty-state-icon"></i>
@@ -981,6 +982,32 @@
             </div>
             
             <div id="grn-content" class="hidden">
+                <!-- NEW: Upload GRN Section -->
+                <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); border: 2px solid #34d399;">
+                    <div class="card-header">
+                        <h2 class="card-title" style="color: #059669;"><i class="fas fa-cloud-upload-alt"></i> Quick Upload GRN</h2>
+                    </div>
+                    <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
+                        Upload GRN Excel file to automatically add stock. Format: Item, Qty, Unit, Unit Cost, Total
+                    </p>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="upload-area" onclick="document.getElementById('quick-grn-upload').click()" style="flex: 1; min-width: 300px; padding: 30px; border-color: #34d399;">
+                            <i class="fas fa-file-excel upload-icon" style="color: #059669; font-size: 48px;"></i>
+                            <h4 style="margin-bottom: 5px;">Click to upload GRN Excel</h4>
+                            <p style="color: var(--gray); font-size: 13px;">.xlsx or .xls files</p>
+                            <input type="file" id="quick-grn-upload" accept=".xlsx,.xls" style="display: none;" onchange="handleQuickGRNUpload(event)">
+                        </div>
+                        <div style="flex: 1; min-width: 300px;">
+                            <div id="quick-grn-preview" style="display: none;">
+                                <div id="quick-grn-content" style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #34d399; max-height: 200px; overflow-y: auto;"></div>
+                                <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="confirmQuickGRN()">
+                                    <i class="fas fa-check"></i> Confirm & Save GRN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title"><i class="fas fa-truck-loading"></i> Goods Receipt Notes (GRN)</h2>
@@ -1079,6 +1106,7 @@
         </div>
 
         <!-- NIGHT CLOSING TAB -->
+                <!-- NIGHT CLOSING TAB -->
         <div id="closing" class="tab-content">
             <div id="closing-empty" class="card empty-state">
                 <i class="fas fa-moon empty-state-icon"></i>
@@ -1087,6 +1115,42 @@
             </div>
             
             <div id="closing-content" class="hidden">
+                <!-- NEW: Upload Closing Section -->
+                <div class="card" style="background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%); border: 2px solid #f59e0b;">
+                    <div class="card-header">
+                        <h2 class="card-title" style="color: #b45309;"><i class="fas fa-cloud-upload-alt"></i> Quick Upload Closing Report</h2>
+                    </div>
+                    <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
+                        Upload Variance Report CSV/Excel. Format: ingredient_name, unit, opening, grn_today, available, physical, consumed, cost_per_unit
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">Closing Date:</label>
+                            <input type="date" class="form-input" id="quick-closing-date" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">Closed By:</label>
+                            <input type="text" class="form-input" id="quick-closed-by" placeholder="Enter name" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="upload-area" onclick="document.getElementById('quick-closing-upload').click()" style="flex: 1; min-width: 300px; padding: 30px; border-color: #f59e0b;">
+                            <i class="fas fa-file-csv upload-icon" style="color: #f59e0b; font-size: 48px;"></i>
+                            <h4 style="margin-bottom: 5px;">Click to upload Closing Report</h4>
+                            <p style="color: var(--gray); font-size: 13px;">.csv, .xlsx or .xls files</p>
+                            <input type="file" id="quick-closing-upload" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleQuickClosingUpload(event)">
+                        </div>
+                        <div style="flex: 1; min-width: 300px;">
+                            <div id="quick-closing-preview" style="display: none;">
+                                <div id="quick-closing-content" style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #f59e0b; max-height: 200px; overflow-y: auto;"></div>
+                                <button class="btn btn-warning" style="width: 100%; margin-top: 10px;" onclick="confirmQuickClosing()">
+                                    <i class="fas fa-check"></i> Confirm & Save Closing
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title"><i class="fas fa-moon"></i> Night Closing & Variance Analysis</h2>
@@ -2524,8 +2588,25 @@
         // UTILITY FUNCTIONS
         // ==========================================
         
-        function generateId() {
-    return Date.now() + Math.floor(Math.random() * 1000) + Math.floor(Math.random() * 1000);
+        // REPLACE your current generateId function with this:
+
+// Global counter to ensure uniqueness
+let idCounter = 0;
+let lastTimestamp = 0;
+
+function generateId() {
+    const now = Date.now();
+    
+    // Reset counter if timestamp changed
+    if (now !== lastTimestamp) {
+        lastTimestamp = now;
+        idCounter = 0;
+    }
+    
+    idCounter++;
+    // Return pure integer: timestamp * 1000 + counter (0-999)
+    // This gives you unique integers like 1773875947888001, 1773875947888002, etc.
+    return (now * 1000) + idCounter;
 }
         
         function formatCurrency(amount) {
@@ -4208,146 +4289,117 @@
             }).join('');
         }
 
-       async function saveClosing(e) {
-    e.preventDefault();
-    console.log("🚀 Starting saveClosing...");
-    
-    const form = e.target;
-    const closingDate = form.date.value;
-    console.log("📅 Closing date:", closingDate);
-    
-    const closingItems = [];
-    let totalConsumptionCost = 0;
-    const consumptionEntries = [];
+        async function saveClosing(e) {
+            e.preventDefault();
+            const form = e.target;
+            const closingDate = form.date.value;
+            const closingItems = [];
+            let totalConsumptionCost = 0;
+            const consumptionEntries = [];
 
-    // Check Supabase connection
-    if (!supabaseClient) {
-        alert("❌ Not connected to Supabase!");
-        return;
-    }
+            for (const ing of inventoryData.ingredients) {
+                let opening = 0;
+                if (ing.openingStock !== undefined && ing.openingStock !== null && !isNaN(ing.openingStock)) {
+                    opening = parseFloat(parseFloat(ing.openingStock).toFixed(3));
+                } else {
+                    opening = parseFloat(parseFloat(ing.currentStock || 0).toFixed(3));
+                }
 
-    try {
-        for (const ing of inventoryData.ingredients) {
-            let opening = 0;
-            if (ing.openingStock !== undefined && ing.openingStock !== null && !isNaN(ing.openingStock)) {
-                opening = parseFloat(parseFloat(ing.openingStock).toFixed(3));
-            } else {
-                opening = parseFloat(parseFloat(ing.currentStock || 0).toFixed(3));
-            }
+                const fromDate = ing.openingStockDate || closingDate;
+                const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
+                const available = parseFloat((opening + grnToday).toFixed(3));
 
-            const fromDate = ing.openingStockDate || closingDate;
-            const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
-            const available = parseFloat((opening + grnToday).toFixed(3));
+                const physicalInput = form[`physical_${ing.id}`];
+                let physical = available;
 
-            const physicalInput = form[`physical_${ing.id}`];
-            let physical = available;
+                if (physicalInput && physicalInput.value !== "" && physicalInput.value !== null) {
+                    physical = parseFloat(parseFloat(physicalInput.value).toFixed(3));
+                }
 
-            if (physicalInput && physicalInput.value !== "" && physicalInput.value !== null) {
-                physical = parseFloat(parseFloat(physicalInput.value).toFixed(3));
-            }
+                const consumed = parseFloat((available - physical).toFixed(3));
+                const consumptionCost = parseFloat((consumed * ing.costPerUnit).toFixed(2));
 
-            const consumed = parseFloat((available - physical).toFixed(3));
-            const consumptionCost = parseFloat((consumed * ing.costPerUnit).toFixed(2));
-
-            closingItems.push({
-                ingredientId: ing.id,
-                name: ing.name,
-                unit: ing.unit,
-                opening: opening,
-                grnToday: grnToday,
-                available: available,
-                physical: physical,
-                consumed: consumed,
-                consumptionCost: consumptionCost,
-                costPerUnit: ing.costPerUnit
-            });
-
-            totalConsumptionCost += consumptionCost;
-
-            if (consumed > 0.001) {
-                consumptionEntries.push({
+                closingItems.push({
                     ingredientId: ing.id,
                     name: ing.name,
-                    qty: consumed,
                     unit: ing.unit,
-                    cost: consumptionCost,
-                    reason: 'Daily Usage'
+                    opening: opening,
+                    grnToday: grnToday,
+                    available: available,
+                    physical: physical,
+                    consumed: consumed,
+                    consumptionCost: consumptionCost,
+                    costPerUnit: ing.costPerUnit
                 });
+
+                totalConsumptionCost += consumptionCost;
+
+                if (consumed > 0.001) {
+                    consumptionEntries.push({
+                        ingredientId: ing.id,
+                        name: ing.name,
+                        qty: consumed,
+                        unit: ing.unit,
+                        cost: consumptionCost,
+                        reason: 'Daily Usage'
+                    });
+                }
+
+                ing.currentStock = physical;
+                ing.openingStock = physical;
+                ing.openingStockDate = closingDate;
+                
+                // Update ingredient in Supabase
+                await saveIngredientToSupabase(ing);
             }
 
-            // Update ingredient stock for next day
-            ing.currentStock = physical;
-            ing.openingStock = physical;
-            ing.openingStockDate = closingDate;
-            
-            console.log(`💾 Saving ingredient: ${ing.name}, ID: ${ing.id}, Type: ${typeof ing.id}`);
-            
-            // Save to Supabase and wait for completion
-            const saved = await saveIngredientToSupabase(ing);
-            if (!saved) {
-                throw new Error(`Failed to save ingredient: ${ing.name}`);
-            }
-        }
-
-        const closing = {
-            id: generateId(),
-            date: closingDate,
-            closedBy: form.closedBy.value,
-            items: closingItems,
-            totalConsumptionCost: totalConsumptionCost,
-            timestamp: new Date().toISOString()
-        };
-
-        console.log("💾 Saving closing:", closing);
-
-        // Save consumption log if there are entries
-        if (consumptionEntries.length > 0) {
-            const consumptionLogEntry = {
+            const closing = {
                 id: generateId(),
-                timestamp: new Date(closingDate + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
-                type: 'auto',
-                reason: 'daily_closing',
-                recipeName: `Daily Consumption - ${formatDate(closingDate)}`,
-                ingredients: consumptionEntries,
-                totalCost: totalConsumptionCost,
-                closingId: closing.id
+                date: closingDate,
+                closedBy: form.closedBy.value,
+                items: closingItems,
+                totalConsumptionCost: totalConsumptionCost,
+                timestamp: new Date().toISOString()
             };
-            
-            console.log("💾 Saving consumption log:", consumptionLogEntry);
-            
-            const saved = await saveConsumptionLogToSupabase(consumptionLogEntry);
-            if (!saved) {
-                throw new Error("Failed to save consumption log");
-            }
-            inventoryData.consumptionLog.unshift(consumptionLogEntry);
-        }
 
-        // Save closing to Supabase
-        console.log("💾 Saving closing to Supabase...");
-        const saved = await saveClosingToSupabase(closing);
-        if (!saved) {
-            throw new Error("Failed to save closing to Supabase");
+            if (consumptionEntries.length > 0) {
+                const consumptionLogEntry = {
+                    id: generateId(),
+                    timestamp: new Date(closingDate + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
+                    type: 'auto',
+                    reason: 'daily_closing',
+                    recipeName: `Daily Consumption - ${formatDate(closingDate)}`,
+                    ingredients: consumptionEntries,
+                    totalCost: totalConsumptionCost,
+                    closingId: closing.id
+                };
+                
+                const saved = await saveConsumptionLogToSupabase(consumptionLogEntry);
+                if (saved) {
+                    inventoryData.consumptionLog.unshift(consumptionLogEntry);
+                }
+            }
+
+            const saved = await saveClosingToSupabase(closing);
+            if (!saved) {
+                showNotification('❌ Failed to save closing to Supabase', 'error');
+                return;
+            }
+            
+            inventoryData.closingHistory.unshift(closing);
+
+            await saveData();
+            closeModal('closing-modal');
+            renderIngredients();
+            refreshDashboard();
+            loadClosingData();
+            
+            if (document.getElementById('consumption').classList.contains('active')) {
+                renderConsumption();
+            }
+            
+            showNotification(`🌙 Night Closing Complete! Consumption: ${formatCurrency(totalConsumptionCost)}`);
         }
-        
-        inventoryData.closingHistory.unshift(closing);
-        await saveData();
-        
-        closeModal('closing-modal');
-        renderIngredients();
-        refreshDashboard();
-        loadClosingData();
-        
-        if (document.getElementById('consumption').classList.contains('active')) {
-            renderConsumption();
-        }
-        
-        showNotification(`🌙 Night Closing Complete! Consumption: ${formatCurrency(totalConsumptionCost)}`);
-        
-    } catch (error) {
-        console.error("❌ ERROR in saveClosing:", error);
-        alert("❌ Error saving closing:\n" + error.message + "\n\nCheck browser console (F12) for details.");
-    }
-}
         
         function loadClosingData() {
             const dateFilter = document.getElementById('closing-date-filter')?.value;
@@ -4600,6 +4652,602 @@
             refreshDashboard();
             showNotification('✅ Consumption entry deleted');
         }
+        // ==========================================
+// QUICK UPLOAD FUNCTIONS FOR GRN TAB
+// ==========================================
+
+let quickGRNData = null;
+
+async function handleQuickGRNUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    
+    if (!['xlsx', 'xls'].includes(fileExt)) {
+        alert('Please upload Excel file (.xlsx or .xls)');
+        return;
+    }
+
+    const reader = new FileReader();
+    
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+            
+            if (jsonData.length === 0) {
+                alert('No data found in file');
+                return;
+            }
+
+            // Auto-detect columns
+            const firstRow = jsonData[0];
+            const columns = Object.keys(firstRow);
+            
+            const nameCol = columns.find(c => c.toLowerCase().includes('item') || c.toLowerCase().includes('name')) || columns[0];
+            const qtyCol = columns.find(c => c.toLowerCase().includes('qty') || c.toLowerCase().includes('quantity')) || columns[1];
+            const unitCol = columns.find(c => c.toLowerCase().includes('unit')) || columns[2];
+            const costCol = columns.find(c => c.toLowerCase().includes('cost') || c.toLowerCase().includes('price')) || columns[3];
+            const totalCol = columns.find(c => c.toLowerCase().includes('total')) || columns[4];
+
+            const items = [];
+            
+            jsonData.forEach(row => {
+                const name = row[nameCol]?.toString().trim();
+                if (!name) return;
+                
+                const qty = parseFloat(row[qtyCol]) || 0;
+                const unit = (row[unitCol] || 'pcs').toString().toLowerCase();
+                const unitCost = parseFloat(row[costCol]) || 0;
+                const total = parseFloat(row[totalCol]) || (qty * unitCost);
+                
+                // Find matching ingredient
+                const ingredient = inventoryData.ingredients.find(ing => 
+                    ing.name.toLowerCase().includes(name.toLowerCase()) ||
+                    name.toLowerCase().includes(ing.name.toLowerCase())
+                );
+                
+                items.push({
+                    ingredientId: ingredient ? ingredient.id : null,
+                    name: name,
+                    qty: qty,
+                    unit: unit,
+                    unitCost: unitCost,
+                    total: total,
+                    itemSupplier: row['Supplier'] || 'Uploaded'
+                });
+            });
+
+            // Extract date from filename
+            const filename = file.name;
+            const dateMatch = filename.match(/(\d{4})[-]?(\d{2})[-]?(\d{2})/);
+            let grnDate = new Date().toISOString().slice(0,10);
+            if (dateMatch) {
+                grnDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+            }
+
+            quickGRNData = {
+                grnNumber: `GRN-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*1000)}`,
+                date: grnDate,
+                supplier: 'Uploaded Supplier',
+                invoiceNumber: '',
+                items: items,
+                total: items.reduce((sum, item) => sum + item.total, 0)
+            };
+
+            // Show preview
+            const previewDiv = document.getElementById('quick-grn-preview');
+            const contentDiv = document.getElementById('quick-grn-content');
+            
+            contentDiv.innerHTML = `
+                <div style="font-size: 14px; margin-bottom: 10px;">
+                    <strong>GRN:</strong> ${quickGRNData.grnNumber}<br>
+                    <strong>Date:</strong> ${quickGRNData.date}<br>
+                    <strong>Items:</strong> ${items.length}<br>
+                    <strong>Total:</strong> ${formatCurrency(quickGRNData.total)}
+                </div>
+                <table style="width: 100%; font-size: 12px;">
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Cost</th>
+                            <th>Match</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.slice(0, 5).map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td>${item.qty} ${item.unit}</td>
+                                <td>${formatCurrency(item.total)}</td>
+                                <td>${item.ingredientId ? '✅' : '⚠️'}</td>
+                            </tr>
+                        `).join('')}
+                        ${items.length > 5 ? `<tr><td colspan="4" style="text-align: center;">... and ${items.length - 5} more</td></tr>` : ''}
+                    </tbody>
+                </table>
+            `;
+            
+            previewDiv.style.display = 'block';
+            
+        } catch (error) {
+            console.error('Error parsing GRN:', error);
+            alert('Error reading file: ' + error.message);
+        }
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+async function confirmQuickGRN() {
+    if (!quickGRNData) return;
+    
+    const grn = {
+        id: generateId(),
+        grnNumber: quickGRNData.grnNumber,
+        date: quickGRNData.date,
+        supplier: quickGRNData.supplier,
+        invoiceNumber: quickGRNData.invoiceNumber,
+        items: quickGRNData.items,
+        total: quickGRNData.total,
+        notes: 'Quick upload from GRN tab',
+        timestamp: new Date().toISOString()
+    };
+    
+    // Update stocks
+    for (const item of grn.items) {
+        if (item.ingredientId) {
+            const ingredient = inventoryData.ingredients.find(i => i.id === item.ingredientId);
+            if (ingredient) {
+                ingredient.currentStock += item.qty;
+                await saveIngredientToSupabase(ingredient);
+            }
+        }
+    }
+    
+    const saved = await saveGRNToSupabase(grn);
+    if (saved) {
+        inventoryData.grnHistory.unshift(grn);
+        await saveData();
+        
+        // Reset
+        quickGRNData = null;
+        document.getElementById('quick-grn-upload').value = '';
+        document.getElementById('quick-grn-preview').style.display = 'none';
+        
+        renderIngredients();
+        renderGRN();
+        refreshDashboard();
+        showNotification(`✅ GRN ${grn.grnNumber} uploaded with ${grn.items.length} items!`);
+    } else {
+        alert('Failed to save GRN');
+    }
+}
+
+// ==========================================
+// QUICK UPLOAD FUNCTIONS FOR CLOSING TAB
+// ==========================================
+
+let quickClosingData = null;
+
+async function handleQuickClosingUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log('Uploading file:', file.name);
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    
+    if (!['csv', 'xlsx', 'xls'].includes(fileExt)) {
+        alert('Please upload CSV or Excel file');
+        return;
+    }
+
+    // Set default date if not set
+    const dateInput = document.getElementById('quick-closing-date');
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0,10);
+    }
+
+    try {
+        if (fileExt === 'csv') {
+            await parseQuickClosingCSV(file);
+        } else {
+            await parseQuickClosingExcel(file);
+        }
+    } catch (error) {
+        console.error('Error parsing file:', error);
+        alert('Error reading file: ' + error.message);
+    }
+}
+
+async function parseQuickClosingCSV(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const text = e.target.result;
+                console.log('CSV raw text (first 500 chars):', text.substring(0, 500));
+                
+                const lines = text.split('\n');
+                console.log('Total lines:', lines.length);
+                
+                if (lines.length < 2) {
+                    alert('File appears to be empty or has no data rows');
+                    reject('Empty file');
+                    return;
+                }
+
+                // Parse header
+                const headerLine = lines[0].trim();
+                console.log('Header line:', headerLine);
+                
+                const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+                console.log('Parsed headers:', headers);
+
+                // Find column indices
+                const nameIdx = headers.findIndex(h => h.includes('ingredient') || h.includes('name'));
+                const unitIdx = headers.findIndex(h => h.includes('unit'));
+                const openingIdx = headers.findIndex(h => h.includes('opening'));
+                const grnIdx = headers.findIndex(h => h.includes('grn'));
+                const availableIdx = headers.findIndex(h => h.includes('available'));
+                const physicalIdx = headers.findIndex(h => h.includes('physical'));
+                const consumedIdx = headers.findIndex(h => h.includes('consumed'));
+                const costIdx = headers.findIndex(h => h.includes('cost') && h.includes('unit'));
+                const consumptionCostIdx = headers.findIndex(h => h.includes('consumption'));
+
+                console.log('Column indices:', { nameIdx, unitIdx, openingIdx, grnIdx, availableIdx, physicalIdx, consumedIdx, costIdx, consumptionCostIdx });
+
+                const items = [];
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    // Handle quoted CSV properly
+                    const values = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let char of line) {
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            values.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    values.push(current.trim());
+                    
+                    // Pad values array if needed
+                    while (values.length < headers.length) {
+                        values.push('');
+                    }
+
+                    const name = nameIdx >= 0 ? values[nameIdx].replace(/"/g, '').trim() : '';
+                    if (!name) continue;
+                    
+                    console.log(`Row ${i}: ${name} =`, values);
+
+                    const ingredient = inventoryData.ingredients.find(ing => 
+                        ing.name.toLowerCase().trim() === name.toLowerCase()
+                    );
+
+                    const opening = openingIdx >= 0 ? parseFloat(values[openingIdx]) || 0 : 0;
+                    const grnToday = grnIdx >= 0 ? parseFloat(values[grnIdx]) || 0 : 0;
+                    const available = availableIdx >= 0 ? parseFloat(values[availableIdx]) || 0 : (opening + grnToday);
+                    const physical = physicalIdx >= 0 ? parseFloat(values[physicalIdx]) || 0 : available;
+                    const consumed = consumedIdx >= 0 ? parseFloat(values[consumedIdx]) || 0 : (available - physical);
+                    const costPerUnit = costIdx >= 0 ? parseFloat(values[costIdx]) || 0 : 0;
+                    const consumptionCost = consumptionCostIdx >= 0 ? parseFloat(values[consumptionCostIdx]) || 0 : (consumed * costPerUnit);
+
+                    items.push({
+                        ingredientId: ingredient ? ingredient.id : null,
+                        name: name,
+                        unit: unitIdx >= 0 ? values[unitIdx].replace(/"/g, '').trim() || 'pcs' : 'pcs',
+                        opening: opening,
+                        grnToday: grnToday,
+                        available: available,
+                        physical: physical,
+                        consumed: consumed,
+                        costPerUnit: costPerUnit,
+                        consumptionCost: consumptionCost
+                    });
+                }
+                
+                console.log('Total items parsed:', items.length);
+                console.log('First 3 items:', items.slice(0, 3));
+
+                if (items.length === 0) {
+                    alert('No valid data found in file. Check column headers match expected format.');
+                    reject('No data');
+                    return;
+                }
+
+                quickClosingData = {
+                    items: items,
+                    totalConsumptionCost: items.reduce((sum, item) => sum + item.consumptionCost, 0)
+                };
+                
+                console.log('Quick closing data:', quickClosingData);
+                showQuickClosingPreview();
+                resolve();
+                
+            } catch (error) {
+                console.error('CSV parse error:', error);
+                reject(error);
+            }
+        };
+        
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file);
+    });
+}
+
+async function parseQuickClosingExcel(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                
+                console.log('Excel sheet name:', sheetName);
+                
+                // Convert to JSON with headers
+                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                console.log('Excel rows:', jsonData.length);
+                console.log('First row (headers):', jsonData[0]);
+                
+                if (jsonData.length < 2) {
+                    alert('Excel file appears to be empty');
+                    reject('Empty file');
+                    return;
+                }
+
+                // First row is headers
+                const headers = jsonData[0].map(h => h.toString().toLowerCase().trim());
+                console.log('Headers:', headers);
+
+                // Find column indices
+                const nameIdx = headers.findIndex(h => h.includes('ingredient') || h.includes('name'));
+                const unitIdx = headers.findIndex(h => h.includes('unit'));
+                const openingIdx = headers.findIndex(h => h.includes('opening'));
+                const grnIdx = headers.findIndex(h => h.includes('grn'));
+                const availableIdx = headers.findIndex(h => h.includes('available'));
+                const physicalIdx = headers.findIndex(h => h.includes('physical'));
+                const consumedIdx = headers.findIndex(h => h.includes('consumed'));
+                const costIdx = headers.findIndex(h => h.includes('cost') && h.includes('unit'));
+                const consumptionCostIdx = headers.findIndex(h => h.includes('consumption'));
+
+                console.log('Column indices:', { nameIdx, unitIdx, openingIdx, grnIdx, availableIdx, physicalIdx, consumedIdx, costIdx, consumptionCostIdx });
+
+                const items = [];
+                
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (!row || row.length === 0) continue;
+                    
+                    const name = nameIdx >= 0 ? row[nameIdx]?.toString().trim() : '';
+                    if (!name) continue;
+                    
+                    console.log(`Row ${i}: ${name}`, row);
+
+                    const ingredient = inventoryData.ingredients.find(ing => 
+                        ing.name.toLowerCase().trim() === name.toLowerCase()
+                    );
+
+                    const getNum = (idx) => {
+                        if (idx < 0 || idx >= row.length) return 0;
+                        const val = parseFloat(row[idx]);
+                        return isNaN(val) ? 0 : val;
+                    };
+
+                    const opening = getNum(openingIdx);
+                    const grnToday = getNum(grnIdx);
+                    const available = availableIdx >= 0 ? getNum(availableIdx) : (opening + grnToday);
+                    const physical = getNum(physicalIdx) || available;
+                    const consumed = consumedIdx >= 0 ? getNum(consumedIdx) : (available - physical);
+                    const costPerUnit = getNum(costIdx);
+                    const consumptionCost = consumptionCostIdx >= 0 ? getNum(consumptionCostIdx) : (consumed * costPerUnit);
+
+                    items.push({
+                        ingredientId: ingredient ? ingredient.id : null,
+                        name: name,
+                        unit: unitIdx >= 0 ? row[unitIdx]?.toString() || 'pcs' : 'pcs',
+                        opening: opening,
+                        grnToday: grnToday,
+                        available: available,
+                        physical: physical,
+                        consumed: consumed,
+                        costPerUnit: costPerUnit,
+                        consumptionCost: consumptionCost
+                    });
+                }
+                
+                console.log('Total items parsed:', items.length);
+
+                if (items.length === 0) {
+                    alert('No valid data found in Excel file');
+                    reject('No data');
+                    return;
+                }
+
+                quickClosingData = {
+                    items: items,
+                    totalConsumptionCost: items.reduce((sum, item) => sum + item.consumptionCost, 0)
+                };
+                
+                showQuickClosingPreview();
+                resolve();
+                
+            } catch (error) {
+                console.error('Excel parse error:', error);
+                reject(error);
+            }
+        };
+        
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function showQuickClosingPreview() {
+    console.log('Showing preview, data:', quickClosingData);
+    
+    const previewDiv = document.getElementById('quick-closing-preview');
+    const contentDiv = document.getElementById('quick-closing-content');
+    
+    if (!quickClosingData || !quickClosingData.items || quickClosingData.items.length === 0) {
+        contentDiv.innerHTML = '<p style="color: red;">No data to display</p>';
+        previewDiv.style.display = 'block';
+        return;
+    }
+    
+    const consumedItems = quickClosingData.items.filter(i => i.consumed > 0);
+    
+    contentDiv.innerHTML = `
+        <div style="font-size: 14px; margin-bottom: 10px;">
+            <strong>Total Items:</strong> ${quickClosingData.items.length}<br>
+            <strong>Items with Consumption:</strong> ${consumedItems.length}<br>
+            <strong>Total Cost:</strong> ${formatCurrency(quickClosingData.totalConsumptionCost)}
+        </div>
+        <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f8fafc;">
+                    <th style="padding: 6px; text-align: left;">Ingredient</th>
+                    <th style="padding: 6px; text-align: center;">Opening</th>
+                    <th style="padding: 6px; text-align: center;">Physical</th>
+                    <th style="padding: 6px; text-align: center;">Consumed</th>
+                    <th style="padding: 6px; text-align: right;">Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${consumedItems.slice(0, 10).map(item => `
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 6px;">${item.name}</td>
+                        <td style="padding: 6px; text-align: center;">${item.opening.toFixed(2)}</td>
+                        <td style="padding: 6px; text-align: center;">${item.physical.toFixed(2)}</td>
+                        <td style="padding: 6px; text-align: center; color: #ef4444; font-weight: 700;">-${item.consumed.toFixed(2)}</td>
+                        <td style="padding: 6px; text-align: right;">${formatCurrency(item.consumptionCost)}</td>
+                    </tr>
+                `).join('')}
+                ${consumedItems.length > 10 ? `<tr><td colspan="5" style="text-align: center; padding: 8px;">... and ${consumedItems.length - 10} more</td></tr>` : ''}
+            </tbody>
+        </table>
+    `;
+    
+    previewDiv.style.display = 'block';
+}
+
+async function confirmQuickClosing() {
+    if (!quickClosingData || !quickClosingData.items || quickClosingData.items.length === 0) {
+        alert('No data to save');
+        return;
+    }
+    
+    const date = document.getElementById('quick-closing-date').value;
+    const closedBy = document.getElementById('quick-closed-by').value || 'System Upload';
+    
+    if (!date) {
+        alert('Please select a closing date');
+        return;
+    }
+    
+    console.log('Saving closing with', quickClosingData.items.length, 'items');
+    
+    const closingId = generateId();
+    
+    // Prepare closing items
+    const closingItems = quickClosingData.items.map((item, index) => ({
+    id: Date.now() + index, // Just a large integer
+    closing_id: closingId,
+        ingredient_id: item.ingredientId,
+        name: item.name,
+        unit: item.unit,
+        opening: item.opening,
+        grn_today: item.grnToday,
+        available: item.available,
+        physical: item.physical,
+        consumed: item.consumed,
+        consumption_cost: item.consumptionCost,
+        cost_per_unit: item.costPerUnit
+    }));
+    
+    // Update ingredient stocks
+    for (const item of quickClosingData.items) {
+        if (item.ingredientId) {
+            const ingredient = inventoryData.ingredients.find(i => i.id === item.ingredientId);
+            if (ingredient) {
+                ingredient.currentStock = item.physical;
+                ingredient.openingStock = item.physical;
+                ingredient.openingStockDate = date;
+                await saveIngredientToSupabase(ingredient);
+            }
+        }
+    }
+    
+    // Save closing header
+    const { error: closingError } = await supabaseClient.from('closing_history').insert({
+        id: closingId,
+        date: date,
+        closed_by: closedBy,
+        total_consumption_cost: quickClosingData.totalConsumptionCost,
+        created_at: new Date().toISOString()
+    });
+    
+    if (closingError) {
+        console.error('Closing header error:', closingError);
+        alert('Error saving closing: ' + closingError.message);
+        return;
+    }
+    
+    // Save closing items in chunks to avoid timeouts
+    const chunkSize = 100;
+    for (let i = 0; i < closingItems.length; i += chunkSize) {
+        const chunk = closingItems.slice(i, i + chunkSize);
+        const { error: itemsError } = await supabaseClient.from('closing_items').insert(chunk);
+        
+        if (itemsError) {
+            console.error('Closing items error:', itemsError);
+            alert('Error saving closing items: ' + itemsError.message);
+            return;
+        }
+        console.log(`Saved chunk ${i/chunkSize + 1} of ${Math.ceil(closingItems.length/chunkSize)}`);
+    }
+    
+    // Add to local data
+    inventoryData.closingHistory.unshift({
+        id: closingId,
+        date: date,
+        closedBy: closedBy,
+        items: quickClosingData.items,
+        totalConsumptionCost: quickClosingData.totalConsumptionCost,
+        timestamp: new Date().toISOString()
+    });
+    
+    await saveData();
+    
+    // Reset
+    quickClosingData = null;
+    document.getElementById('quick-closing-upload').value = '';
+    document.getElementById('quick-closing-preview').style.display = 'none';
+    document.getElementById('quick-closed-by').value = '';
+    
+    renderIngredients();
+    refreshDashboard();
+    loadClosingData();
+    showNotification(`🌙 Closing uploaded! ${closingItems.length} items saved.`);
+}
     </script>
 </body>
 </html>
