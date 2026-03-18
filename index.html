@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1338,7 +1339,7 @@
                                 <input type="text" class="form-input" name="grnNumber" id="auto-grn-number" readonly style="background: #f8fafc; font-weight: 700; color: var(--success);">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Date <span style="color: var(--danger)">*</span> <small style="font-weight: normal; color: #6b7280;">(Max 1 month back)</small></label>
+                                <label class="form-label">Date <span style="color: var(--danger)">*</span> <small style="font-weight: normal; color: #6b7280;">(Up to 1 month back)</small></label>
                                 <input type="date" class="form-input" name="date" id="grn-date-input" required style="font-weight: 600;">
                             </div>
                         </div>
@@ -3243,28 +3244,19 @@
         }
         
         function validateGRNDate(dateString) {
-            if (!dateString) return false;
-            
-            const selectedDate = new Date(dateString);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            oneMonthAgo.setHours(0, 0, 0, 0);
-            
-            if (selectedDate > today) {
-                alert('GRN date cannot be in the future');
-                return false;
-            }
-            
-            if (selectedDate < oneMonthAgo) {
-                alert('GRN date cannot be more than 1 month in the past');
-                return false;
-            }
-            
-            return true;
-        }
+    if (!dateString) return false;
+
+    const selectedDate = new Date(dateString);
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    oneMonthAgo.setHours(0, 0, 0, 0);
+
+    if (selectedDate < oneMonthAgo) {
+        alert('GRN date cannot be more than 1 month in the past');
+        return false;
+    }
+    return true;
+}
         
         function resetGRNForm() {
             editingGRNId = null;
