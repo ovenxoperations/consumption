@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2524,8 +2525,8 @@
         // ==========================================
         
         function generateId() {
-            return Date.now() + Math.floor(Math.random() * 10000);
-        }
+    return Date.now() + Math.floor(Math.random() * 1000) + Math.floor(Math.random() * 1000);
+}
         
         function formatCurrency(amount) {
             return 'Rs ' + parseFloat(amount).toLocaleString('en-PK', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -4207,117 +4208,146 @@
             }).join('');
         }
 
-        async function saveClosing(e) {
-            e.preventDefault();
-            const form = e.target;
-            const closingDate = form.date.value;
-            const closingItems = [];
-            let totalConsumptionCost = 0;
-            const consumptionEntries = [];
+       async function saveClosing(e) {
+    e.preventDefault();
+    console.log("🚀 Starting saveClosing...");
+    
+    const form = e.target;
+    const closingDate = form.date.value;
+    console.log("📅 Closing date:", closingDate);
+    
+    const closingItems = [];
+    let totalConsumptionCost = 0;
+    const consumptionEntries = [];
 
-            for (const ing of inventoryData.ingredients) {
-                let opening = 0;
-                if (ing.openingStock !== undefined && ing.openingStock !== null && !isNaN(ing.openingStock)) {
-                    opening = parseFloat(parseFloat(ing.openingStock).toFixed(3));
-                } else {
-                    opening = parseFloat(parseFloat(ing.currentStock || 0).toFixed(3));
-                }
+    // Check Supabase connection
+    if (!supabaseClient) {
+        alert("❌ Not connected to Supabase!");
+        return;
+    }
 
-                const fromDate = ing.openingStockDate || closingDate;
-                const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
-                const available = parseFloat((opening + grnToday).toFixed(3));
+    try {
+        for (const ing of inventoryData.ingredients) {
+            let opening = 0;
+            if (ing.openingStock !== undefined && ing.openingStock !== null && !isNaN(ing.openingStock)) {
+                opening = parseFloat(parseFloat(ing.openingStock).toFixed(3));
+            } else {
+                opening = parseFloat(parseFloat(ing.currentStock || 0).toFixed(3));
+            }
 
-                const physicalInput = form[`physical_${ing.id}`];
-                let physical = available;
+            const fromDate = ing.openingStockDate || closingDate;
+            const grnToday = getGRNForDate(ing.id, closingDate, fromDate);
+            const available = parseFloat((opening + grnToday).toFixed(3));
 
-                if (physicalInput && physicalInput.value !== "" && physicalInput.value !== null) {
-                    physical = parseFloat(parseFloat(physicalInput.value).toFixed(3));
-                }
+            const physicalInput = form[`physical_${ing.id}`];
+            let physical = available;
 
-                const consumed = parseFloat((available - physical).toFixed(3));
-                const consumptionCost = parseFloat((consumed * ing.costPerUnit).toFixed(2));
+            if (physicalInput && physicalInput.value !== "" && physicalInput.value !== null) {
+                physical = parseFloat(parseFloat(physicalInput.value).toFixed(3));
+            }
 
-                closingItems.push({
+            const consumed = parseFloat((available - physical).toFixed(3));
+            const consumptionCost = parseFloat((consumed * ing.costPerUnit).toFixed(2));
+
+            closingItems.push({
+                ingredientId: ing.id,
+                name: ing.name,
+                unit: ing.unit,
+                opening: opening,
+                grnToday: grnToday,
+                available: available,
+                physical: physical,
+                consumed: consumed,
+                consumptionCost: consumptionCost,
+                costPerUnit: ing.costPerUnit
+            });
+
+            totalConsumptionCost += consumptionCost;
+
+            if (consumed > 0.001) {
+                consumptionEntries.push({
                     ingredientId: ing.id,
                     name: ing.name,
+                    qty: consumed,
                     unit: ing.unit,
-                    opening: opening,
-                    grnToday: grnToday,
-                    available: available,
-                    physical: physical,
-                    consumed: consumed,
-                    consumptionCost: consumptionCost,
-                    costPerUnit: ing.costPerUnit
+                    cost: consumptionCost,
+                    reason: 'Daily Usage'
                 });
-
-                totalConsumptionCost += consumptionCost;
-
-                if (consumed > 0.001) {
-                    consumptionEntries.push({
-                        ingredientId: ing.id,
-                        name: ing.name,
-                        qty: consumed,
-                        unit: ing.unit,
-                        cost: consumptionCost,
-                        reason: 'Daily Usage'
-                    });
-                }
-
-                ing.currentStock = physical;
-                ing.openingStock = physical;
-                ing.openingStockDate = closingDate;
-                
-                // Update ingredient in Supabase
-                await saveIngredientToSupabase(ing);
             }
 
-            const closing = {
-                id: generateId(),
-                date: closingDate,
-                closedBy: form.closedBy.value,
-                items: closingItems,
-                totalConsumptionCost: totalConsumptionCost,
-                timestamp: new Date().toISOString()
-            };
-
-            if (consumptionEntries.length > 0) {
-                const consumptionLogEntry = {
-                    id: generateId(),
-                    timestamp: new Date(closingDate + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
-                    type: 'auto',
-                    reason: 'daily_closing',
-                    recipeName: `Daily Consumption - ${formatDate(closingDate)}`,
-                    ingredients: consumptionEntries,
-                    totalCost: totalConsumptionCost,
-                    closingId: closing.id
-                };
-                
-                const saved = await saveConsumptionLogToSupabase(consumptionLogEntry);
-                if (saved) {
-                    inventoryData.consumptionLog.unshift(consumptionLogEntry);
-                }
-            }
-
-            const saved = await saveClosingToSupabase(closing);
+            // Update ingredient stock for next day
+            ing.currentStock = physical;
+            ing.openingStock = physical;
+            ing.openingStockDate = closingDate;
+            
+            console.log(`💾 Saving ingredient: ${ing.name}, ID: ${ing.id}, Type: ${typeof ing.id}`);
+            
+            // Save to Supabase and wait for completion
+            const saved = await saveIngredientToSupabase(ing);
             if (!saved) {
-                showNotification('❌ Failed to save closing to Supabase', 'error');
-                return;
+                throw new Error(`Failed to save ingredient: ${ing.name}`);
             }
-            
-            inventoryData.closingHistory.unshift(closing);
-
-            await saveData();
-            closeModal('closing-modal');
-            renderIngredients();
-            refreshDashboard();
-            loadClosingData();
-            
-            if (document.getElementById('consumption').classList.contains('active')) {
-                renderConsumption();
-            }
-            
-            showNotification(`🌙 Night Closing Complete! Consumption: ${formatCurrency(totalConsumptionCost)}`);
         }
+
+        const closing = {
+            id: generateId(),
+            date: closingDate,
+            closedBy: form.closedBy.value,
+            items: closingItems,
+            totalConsumptionCost: totalConsumptionCost,
+            timestamp: new Date().toISOString()
+        };
+
+        console.log("💾 Saving closing:", closing);
+
+        // Save consumption log if there are entries
+        if (consumptionEntries.length > 0) {
+            const consumptionLogEntry = {
+                id: generateId(),
+                timestamp: new Date(closingDate + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
+                type: 'auto',
+                reason: 'daily_closing',
+                recipeName: `Daily Consumption - ${formatDate(closingDate)}`,
+                ingredients: consumptionEntries,
+                totalCost: totalConsumptionCost,
+                closingId: closing.id
+            };
+            
+            console.log("💾 Saving consumption log:", consumptionLogEntry);
+            
+            const saved = await saveConsumptionLogToSupabase(consumptionLogEntry);
+            if (!saved) {
+                throw new Error("Failed to save consumption log");
+            }
+            inventoryData.consumptionLog.unshift(consumptionLogEntry);
+        }
+
+        // Save closing to Supabase
+        console.log("💾 Saving closing to Supabase...");
+        const saved = await saveClosingToSupabase(closing);
+        if (!saved) {
+            throw new Error("Failed to save closing to Supabase");
+        }
+        
+        inventoryData.closingHistory.unshift(closing);
+        await saveData();
+        
+        closeModal('closing-modal');
+        renderIngredients();
+        refreshDashboard();
+        loadClosingData();
+        
+        if (document.getElementById('consumption').classList.contains('active')) {
+            renderConsumption();
+        }
+        
+        showNotification(`🌙 Night Closing Complete! Consumption: ${formatCurrency(totalConsumptionCost)}`);
+        
+    } catch (error) {
+        console.error("❌ ERROR in saveClosing:", error);
+        alert("❌ Error saving closing:\n" + error.message + "\n\nCheck browser console (F12) for details.");
+    }
+}
         
         function loadClosingData() {
             const dateFilter = document.getElementById('closing-date-filter')?.value;
