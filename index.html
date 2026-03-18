@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1550,10 +1549,8 @@
                 return true;
             } catch (error) {
                 console.error('❌ Supabase connection failed:', error);
-                updateSyncStatus('offline', 'Supabase Error - Using Local');
-                
-                // Fallback to local storage
-                await loadDataFromLocalStorage();
+                updateSyncStatus('offline', 'Supabase Error - Check Connection');
+                supabaseClient = null;
                 return false;
             }
         }
@@ -1562,10 +1559,18 @@
             const indicator = document.getElementById('offline-status');
             const text = document.getElementById('sync-status-text');
             
-            if (indicator && text) {
-                indicator.className = 'offline-indicator ' + status;
-                text.textContent = message;
-            }
+            if (!indicator || !text) return;
+            
+            const colors = {
+                online: '#10b981',
+                syncing: '#f59e0b',
+                offline: '#ef4444',
+                error: '#dc2626'
+            };
+            
+            indicator.style.background = colors[status] || colors.offline;
+            indicator.className = 'offline-indicator ' + status;
+            text.textContent = message;
         }
         
         // ==========================================
@@ -1580,7 +1585,7 @@
                 const { data: ingredients, error: ingError } = await supabaseClient
                     .from('ingredients')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('timestamp', { ascending: false });
                 
                 if (ingError) throw ingError;
                 
@@ -1588,7 +1593,7 @@
                 const { data: recipes, error: recError } = await supabaseClient
                     .from('recipes')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('timestamp', { ascending: false });
                 
                 if (recError) throw recError;
                 
@@ -1602,7 +1607,7 @@
                 const { data: grnHistory, error: grnError } = await supabaseClient
                     .from('grn_history')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('timestamp', { ascending: false });
                 
                 if (grnError) throw grnError;
                 
@@ -1616,7 +1621,7 @@
                 const { data: consumptionLog, error: consError } = await supabaseClient
                     .from('consumption_log')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('timestamp', { ascending: false });
                 
                 if (consError) throw consError;
                 
@@ -1630,7 +1635,7 @@
                 const { data: closingHistory, error: closeError } = await supabaseClient
                     .from('closing_history')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('timestamp', { ascending: false });
                 
                 if (closeError) throw closeError;
                 
@@ -1701,7 +1706,7 @@
                         items: items,
                         total: parseFloat(grn.total) || 0,
                         notes: grn.notes || '',
-                        timestamp: grn.created_at
+                        timestamp: grn.timestamp
                     };
                 });
                 
@@ -1719,7 +1724,7 @@
                     
                     return {
                         id: log.id,
-                        timestamp: log.created_at,
+                        timestamp: log.timestamp,
                         recipeId: log.recipe_id,
                         recipeName: log.recipe_name,
                         type: log.type,
@@ -1753,7 +1758,7 @@
                         closedBy: closing.closed_by,
                         items: items,
                         totalConsumptionCost: parseFloat(closing.total_consumption_cost) || 0,
-                        timestamp: closing.created_at
+                        timestamp: closing.timestamp
                     };
                 });
                 
@@ -2042,57 +2047,37 @@
         }
         
         // ==========================================
-        // LOCAL STORAGE FALLBACK
+        // SUPABASE-ONLY MODE - NO LOCALSTORAGE
         // ==========================================
         
-        async function saveDataToLocalStorage() {
+        async function saveData() {
+            // Supabase-only mode - no localStorage backup
+            if (!supabaseClient) {
+                showNotification('⚠️ Not connected to Supabase - changes not saved', 'error');
+                return false;
+            }
+            
+            updateSyncStatus('syncing', 'Syncing to Supabase...');
+            
             try {
-                localStorage.setItem('ovenX_inventory_data_v1', JSON.stringify(inventoryData));
+                // Verify connection is alive
+                const { error } = await supabaseClient.from('ingredients').select('id').limit(1);
+                if (error) throw error;
+                
+                updateSyncStatus('online', 'Synced to Supabase');
                 return true;
             } catch (error) {
-                console.error('Local storage save failed:', error);
+                console.error('Supabase sync error:', error);
+                updateSyncStatus('offline', 'Supabase Error - Check Connection');
+                showNotification('⚠️ Failed to sync - check internet connection', 'error');
                 return false;
             }
         }
         
         async function loadDataFromLocalStorage() {
-            try {
-                const data = localStorage.getItem('ovenX_inventory_data_v1');
-                if (data) {
-                    inventoryData = JSON.parse(data);
-                    
-                    // Fix any string numbers
-                    if (inventoryData.ingredients) {
-                        inventoryData.ingredients.forEach(ing => {
-                            ing.currentStock = Number(ing.currentStock) || 0;
-                            ing.openingStock = ing.openingStock !== undefined ? Number(ing.openingStock) : undefined;
-                            ing.minLevel = Number(ing.minLevel) || 0;
-                            ing.costPerUnit = Number(ing.costPerUnit) || 0;
-                        });
-                    }
-                    
-                    return true;
-                }
-            } catch (error) {
-                console.error('Local storage load failed:', error);
-            }
+            // Supabase-only mode - do not load from localStorage
+            console.log('Supabase-only mode: Skipping localStorage load');
             return false;
-        }
-        
-        // ==========================================
-        // UNIFIED SAVE FUNCTION
-        // ==========================================
-        
-        async function saveData() {
-            // Always save to local storage as backup
-            await saveDataToLocalStorage();
-            
-            // Sync to Supabase if connected
-            if (supabaseClient) {
-                updateSyncStatus('syncing', 'Syncing...');
-                // Note: Individual saves happen in their respective functions
-                updateSyncStatus('online', 'Synced');
-            }
         }
         
         function showNotification(message, type = 'success') {
@@ -2114,29 +2099,57 @@
         }
         
         // ==========================================
-        // INITIALIZATION
+        // INITIALIZATION - SUPABASE ONLY
         // ==========================================
         
         async function initializeApp() {
-            updateSyncStatus('syncing', 'Initializing...');
+            updateSyncStatus('syncing', 'Connecting to Supabase...');
             
-            // Initialize Supabase first
-            await initializeSupabase();
+            // Initialize Supabase - fail if no connection
+            const connected = await initializeSupabase();
+            
+            if (!connected) {
+                showNotification('❌ Cannot start without Supabase connection', 'error');
+                document.body.innerHTML = `
+                    <div style="text-align:center;padding:100px 20px;">
+                        <h1 style="color:#ef4444;margin-bottom:20px;">Connection Required</h1>
+                        <p>This app requires a Supabase connection to function.</p>
+                        <p style="color:#6b7280;margin-top:10px;">Please check your internet connection and refresh.</p>
+                        <button onclick="location.reload()" style="margin-top:30px;padding:12px 24px;background:#f37021;color:white;border:none;border-radius:8px;cursor:pointer;">
+                            Retry Connection
+                        </button>
+                    </div>
+                `;
+                return;
+            }
             
             // Setup UI
             setupDragAndDrop();
             updateUIForData();
+            setupRealtimeSubscription();
             
-            // Setup realtime subscription if connected
-            if (supabaseClient) {
-                setupRealtimeSubscription();
+            // Connection health check every 30 seconds
+            setInterval(checkSupabaseHealth, 30000);
+            
+            showNotification('✅ Connected to Supabase - All data will be saved online');
+        }
+        
+        async function checkSupabaseHealth() {
+            if (!supabaseClient) return false;
+            
+            try {
+                const start = Date.now();
+                const { error } = await supabaseClient.from('ingredients').select('count', { count: 'exact', head: true });
+                const latency = Date.now() - start;
+                
+                if (error) throw error;
+                
+                updateSyncStatus('online', `Connected (${latency}ms)`);
+                return true;
+            } catch (error) {
+                updateSyncStatus('offline', 'Connection Lost');
+                return false;
             }
-            
-            // Auto-save interval
-            setInterval(saveData, 30000);
-            
-            // Save on page unload
-            window.addEventListener('beforeunload', () => saveData());
         }
         
         function setupRealtimeSubscription() {
@@ -2268,7 +2281,7 @@
                 const result = processExcelData(data);
                 
                 document.getElementById('progress-bar').style.width = '80%';
-                document.getElementById('progress-text').textContent = 'Saving to database...';
+                document.getElementById('progress-text').textContent = 'Saving to Supabase...';
                 
                 // Save ingredients to Supabase
                 if (result.ingredients.length > 0) {
@@ -2286,6 +2299,7 @@
                     inventoryData.recipes = result.recipes;
                 }
                 
+                // Verify sync
                 await saveData();
                 
                 document.getElementById('progress-bar').style.width = '100%';
@@ -2525,7 +2539,8 @@
             const labels = {
                 meat: 'Meat & Poultry', dairy: 'Dairy & Cheese', vegetables: 'Vegetables',
                 spices: 'Spices & Herbs', packaging: 'Packaging', beverages: 'Beverages',
-                frozen: 'Frozen Items', dry: 'Dry Goods', sauce: 'Sauce', chicken: 'Chicken',
+                frozen: 'Frozen Items',
+                                dry: 'Dry Goods', sauce: 'Sauce', chicken: 'Chicken',
                 cheese: 'Cheese', oil: 'Oil', flour: 'Flour', general: 'General',
                 bread: 'Bread', pasta: 'Pasta', starter: 'Starters', burger: 'Burgers',
                 pizza: 'Pizza', wrap: 'Wraps', roll: 'Rolls', wings: 'Wings',
@@ -2818,11 +2833,12 @@
                 ing.currentStock = Math.max(0, ing.currentStock + change);
                 
                 // Save to Supabase
-                await saveIngredientToSupabase(ing);
-                await saveData();
-                
-                renderIngredients();
-                refreshDashboard();
+                const saved = await saveIngredientToSupabase(ing);
+                if (saved) {
+                    await saveData();
+                    renderIngredients();
+                    refreshDashboard();
+                }
             }
         }
         
@@ -2842,7 +2858,11 @@
             };
             
             // Save to Supabase
-            await saveIngredientToSupabase(newIngredient);
+            const saved = await saveIngredientToSupabase(newIngredient);
+            if (!saved) {
+                showNotification('❌ Failed to save ingredient to Supabase', 'error');
+                return;
+            }
             
             inventoryData.ingredients.push(newIngredient);
             await saveData();
@@ -2852,7 +2872,7 @@
             renderIngredients();
             refreshDashboard();
             populateCategoryFilter();
-            showNotification('Ingredient added successfully!');
+            showNotification('✅ Ingredient added successfully!');
         }
         
         async function editIngredient(id) {
@@ -2880,7 +2900,12 @@
                 ing.supplier = form.supplier.value;
                 ing.location = form.location.value;
                 
-                await saveIngredientToSupabase(ing);
+                const saved = await saveIngredientToSupabase(ing);
+                if (!saved) {
+                    showNotification('❌ Failed to update ingredient', 'error');
+                    return;
+                }
+                
                 await saveData();
                 
                 closeModal('add-ingredient-modal');
@@ -2888,7 +2913,7 @@
                 form.onsubmit = saveIngredient;
                 renderIngredients();
                 refreshDashboard();
-                showNotification('Ingredient updated successfully!');
+                showNotification('✅ Ingredient updated successfully!');
             };
             
             openModal('add-ingredient-modal');
@@ -2898,7 +2923,11 @@
             if (!confirm('Are you sure you want to delete this ingredient?')) return;
             
             // Delete from Supabase
-            await deleteIngredientFromSupabase(id);
+            const deleted = await deleteIngredientFromSupabase(id);
+            if (!deleted) {
+                showNotification('❌ Failed to delete ingredient from Supabase', 'error');
+                return;
+            }
             
             inventoryData.ingredients = inventoryData.ingredients.filter(i => String(i.id) !== String(id));
             await saveData();
@@ -2906,6 +2935,7 @@
             renderIngredients();
             refreshDashboard();
             populateCategoryFilter();
+            showNotification('✅ Ingredient deleted successfully!');
         }
         
         // ==========================================
@@ -3015,7 +3045,11 @@
             };
             
             // Save to Supabase
-            await saveRecipeToSupabase(newRecipe);
+            const saved = await saveRecipeToSupabase(newRecipe);
+            if (!saved) {
+                showNotification('❌ Failed to save recipe to Supabase', 'error');
+                return;
+            }
             
             inventoryData.recipes.push(newRecipe);
             await saveData();
@@ -3024,7 +3058,7 @@
             resetRecipeForm();
             renderRecipes();
             refreshDashboard();
-            showNotification('Recipe saved successfully!');
+            showNotification('✅ Recipe saved successfully!');
         }
         
         function renderRecipes() {
@@ -3202,26 +3236,36 @@
                 };
                 
                 // Save to Supabase
-                await saveRecipeToSupabase(inventoryData.recipes[recipeIndex]);
+                const saved = await saveRecipeToSupabase(inventoryData.recipes[recipeIndex]);
+                if (!saved) {
+                    showNotification('❌ Failed to update recipe', 'error');
+                    return;
+                }
+                
                 await saveData();
                 
                 closeModal('add-recipe-modal');
                 resetRecipeForm();
                 renderRecipes();
-                showNotification('Recipe updated successfully!');
+                showNotification('✅ Recipe updated successfully!');
             }
         }
         
         async function deleteRecipe(id) {
             if (!confirm('Delete this recipe?')) return;
             
-            await deleteRecipeFromSupabase(id);
+            const deleted = await deleteRecipeFromSupabase(id);
+            if (!deleted) {
+                showNotification('❌ Failed to delete recipe from Supabase', 'error');
+                return;
+            }
             
             inventoryData.recipes = inventoryData.recipes.filter(r => r.id !== id);
             await saveData();
             
             renderRecipes();
             refreshDashboard();
+            showNotification('✅ Recipe deleted successfully!');
         }
         
         // ==========================================
@@ -3244,19 +3288,19 @@
         }
         
         function validateGRNDate(dateString) {
-    if (!dateString) return false;
+            if (!dateString) return false;
 
-    const selectedDate = new Date(dateString);
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    oneMonthAgo.setHours(0, 0, 0, 0);
+            const selectedDate = new Date(dateString);
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            oneMonthAgo.setHours(0, 0, 0, 0);
 
-    if (selectedDate < oneMonthAgo) {
-        alert('GRN date cannot be more than 1 month in the past');
-        return false;
-    }
-    return true;
-}
+            if (selectedDate < oneMonthAgo) {
+                alert('GRN date cannot be more than 1 month in the past');
+                return false;
+            }
+            return true;
+        }
         
         function resetGRNForm() {
             editingGRNId = null;
@@ -3436,14 +3480,14 @@
             }
 
             // Update stock for all items
-            items.forEach(item => {
+            for (const item of items) {
                 const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(item.ingredientId));
                 if (ingredient) {
                     ingredient.currentStock += item.qty;
                     // Also update in Supabase
-                    saveIngredientToSupabase(ingredient);
+                    await saveIngredientToSupabase(ingredient);
                 }
-            });
+            }
 
             // Create GRN
             const grn = {
@@ -3459,7 +3503,11 @@
             };
 
             // Save to Supabase
-            await saveGRNToSupabase(grn);
+            const saved = await saveGRNToSupabase(grn);
+            if (!saved) {
+                showNotification('❌ Failed to save GRN to Supabase', 'error');
+                return;
+            }
             
             inventoryData.grnHistory.unshift(grn);
             await saveData();
@@ -3469,7 +3517,7 @@
             renderGRN();
             refreshDashboard();
 
-            alert(`✅ GRN ${grn.grnNumber} saved!\nAdded ${items.length} item(s)\nTotal: ${formatCurrency(grn.total)}`);
+            showNotification(`✅ GRN ${grn.grnNumber} saved! Added ${items.length} item(s)`);
         }
         
         function renderGRN() {
@@ -3576,16 +3624,20 @@
             
             const grn = inventoryData.grnHistory.find(g => String(g.id) === String(id));
             if (grn) {
-                grn.items.forEach(item => {
+                for (const item of grn.items) {
                     const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(item.ingredientId));
                     if (ingredient) {
                         ingredient.currentStock -= item.qty;
                         if (ingredient.currentStock < 0) ingredient.currentStock = 0;
-                        saveIngredientToSupabase(ingredient);
+                        await saveIngredientToSupabase(ingredient);
                     }
-                });
+                }
                 
-                await deleteGRNFromSupabase(id);
+                const deleted = await deleteGRNFromSupabase(id);
+                if (!deleted) {
+                    showNotification('❌ Failed to delete GRN from Supabase', 'error');
+                    return;
+                }
                 
                 inventoryData.grnHistory = inventoryData.grnHistory.filter(g => String(g.id) !== String(id));
                 await saveData();
@@ -3593,6 +3645,7 @@
                 renderGRN();
                 renderIngredients();
                 refreshDashboard();
+                showNotification('✅ GRN deleted successfully!');
             }
         }
         
@@ -3819,16 +3872,19 @@
             }
 
             // Revert old stock
-            grn.items.forEach(oldItem => {
+            for (const oldItem of grn.items) {
                 const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(oldItem.ingredientId));
                 if (ingredient) ingredient.currentStock -= oldItem.qty;
-            });
+            }
 
             // Apply new stock
-            items.forEach(newItem => {
+            for (const newItem of items) {
                 const ingredient = inventoryData.ingredients.find(i => String(i.id) === String(newItem.ingredientId));
-                if (ingredient) ingredient.currentStock += newItem.qty;
-            });
+                if (ingredient) {
+                    ingredient.currentStock += newItem.qty;
+                    await saveIngredientToSupabase(ingredient);
+                }
+            }
 
             // Delete old GRN and save new one
             await deleteGRNFromSupabase(id);
@@ -3845,7 +3901,11 @@
                 timestamp: grn.timestamp
             };
             
-            await saveGRNToSupabase(updatedGRN);
+            const saved = await saveGRNToSupabase(updatedGRN);
+            if (!saved) {
+                showNotification('❌ Failed to update GRN', 'error');
+                return;
+            }
             
             const idx = inventoryData.grnHistory.findIndex(g => String(g.id) === String(id));
             if (idx !== -1) {
@@ -3886,13 +3946,13 @@
                 return;
             }
             
-            recipe.ingredients.forEach(ing => {
+            for (const ing of recipe.ingredients) {
                 const ingredient = inventoryData.ingredients.find(i => i.id === ing.ingredientId);
                 if (ingredient) {
                     ingredient.currentStock -= ing.qty;
-                    saveIngredientToSupabase(ingredient);
+                    await saveIngredientToSupabase(ingredient);
                 }
-            });
+            }
             
             const logEntry = {
                 id: generateId(),
@@ -3918,7 +3978,11 @@
                 }, 0)
             };
             
-            await saveConsumptionLogToSupabase(logEntry);
+            const saved = await saveConsumptionLogToSupabase(logEntry);
+            if (!saved) {
+                showNotification('❌ Failed to save consumption log', 'error');
+                return;
+            }
             
             inventoryData.consumptionLog.unshift(logEntry);
             await saveData();
@@ -3926,7 +3990,7 @@
             renderIngredients();
             renderConsumption();
             refreshDashboard();
-            alert(`${recipe.name} sold! Stock deducted.`);
+            showNotification(`✅ ${recipe.name} sold! Stock deducted.`);
         }
         
         function simulateSale() {
@@ -4123,16 +4187,6 @@
                 const grnToday = getGRNForDate(ing.id, today, fromDate);
                 const available = opening + grnToday;
 
-                if (ing.name.includes('Peri')) {
-                    console.log(`Night Closing ${ing.name}:`, {
-                        openingStock: ing.openingStock,
-                        parsedOpening: opening,
-                        grnToday: grnToday,
-                        available: available,
-                        unit: ing.unit
-                    });
-                }
-
                 return `
                     <tr data-ingredient-id="${ing.id}">
                         <td style="font-weight:700;">${ing.name}</td>
@@ -4161,7 +4215,7 @@
             let totalConsumptionCost = 0;
             const consumptionEntries = [];
 
-            inventoryData.ingredients.forEach(ing => {
+            for (const ing of inventoryData.ingredients) {
                 let opening = 0;
                 if (ing.openingStock !== undefined && ing.openingStock !== null && !isNaN(ing.openingStock)) {
                     opening = parseFloat(parseFloat(ing.openingStock).toFixed(3));
@@ -4214,8 +4268,8 @@
                 ing.openingStockDate = closingDate;
                 
                 // Update ingredient in Supabase
-                saveIngredientToSupabase(ing);
-            });
+                await saveIngredientToSupabase(ing);
+            }
 
             const closing = {
                 id: generateId(),
@@ -4238,11 +4292,18 @@
                     closingId: closing.id
                 };
                 
-                await saveConsumptionLogToSupabase(consumptionLogEntry);
-                inventoryData.consumptionLog.unshift(consumptionLogEntry);
+                const saved = await saveConsumptionLogToSupabase(consumptionLogEntry);
+                if (saved) {
+                    inventoryData.consumptionLog.unshift(consumptionLogEntry);
+                }
             }
 
-            await saveClosingToSupabase(closing);
+            const saved = await saveClosingToSupabase(closing);
+            if (!saved) {
+                showNotification('❌ Failed to save closing to Supabase', 'error');
+                return;
+            }
+            
             inventoryData.closingHistory.unshift(closing);
 
             await saveData();
@@ -4374,9 +4435,11 @@
                   `GRNs: ${inventoryData.grnHistory.length}\n` +
                   `Consumption Logs: ${inventoryData.consumptionLog.length}\n` +
                   `Closing History: ${inventoryData.closingHistory.length}\n\n` +
-                  `Storage: ${isConnected ? 'Supabase (PostgreSQL)' : 'Local Only'}\n` +
+                  `Storage: ${isConnected ? 'Supabase (PostgreSQL)' : 'NOT CONNECTED'}\n` +
                   `Project: ypziyhlozwtziurdeuxb\n` +
-                  `Real-time: ${isConnected ? '✅ Active' : '❌ Offline'}`);
+                  `Real-time: ${isConnected ? '✅ Active' : '❌ Offline'}\n\n` +
+                  `⚠️ This app is in SUPABASE-ONLY mode.\n` +
+                  `No data is stored locally.`);
         }
         
         function logout() {
@@ -4427,15 +4490,6 @@
                     openingStockValue = currentStock;
                 }
                 
-                if (ing.name.includes('Peri')) {
-                    console.log(`Populating ${ing.name}:`, {
-                        rawOpening: ing.openingStock,
-                        parsedOpening: openingStockValue,
-                        currentStock: currentStock,
-                        unit: ing.unit
-                    });
-                }
-                
                 return `
                     <tr data-ingredient-id="${ing.id}">
                         <td style="padding:12px 15px;font-weight:700;">${ing.name}</td>
@@ -4466,7 +4520,7 @@
         async function saveOpeningStock() {
             const date = document.getElementById('opening-stock-date').value || new Date().toISOString().slice(0,10);
             
-            inventoryData.ingredients.forEach(ing => {
+            for (const ing of inventoryData.ingredients) {
                 const input = document.getElementById(`opening_${ing.id}`);
                 if (input) {
                     const rawValue = input.value;
@@ -4477,19 +4531,11 @@
                         ing.openingStockDate = date;
                         ing.currentStock = val;
                         
-                        if (ing.name.includes('Peri')) {
-                            console.log(`Saved ${ing.name}:`, {
-                                inputValue: rawValue,
-                                savedValue: val,
-                                unit: ing.unit
-                            });
-                        }
-                        
                         // Save to Supabase
-                        saveIngredientToSupabase(ing);
+                        await saveIngredientToSupabase(ing);
                     }
                 }
-            });
+            }
             
             await saveData();
             closeModal('opening-stock-modal');
@@ -4522,7 +4568,7 @@
             await saveData();
             renderConsumptionLive();
             refreshDashboard();
-            showNotification('Consumption entry deleted');
+            showNotification('✅ Consumption entry deleted');
         }
     </script>
 </body>
