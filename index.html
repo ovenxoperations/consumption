@@ -1106,50 +1106,57 @@
         </div>
 
         <!-- NIGHT CLOSING TAB -->
-                <!-- NIGHT CLOSING TAB -->
-        <div id="closing" class="tab-content">
-            <div id="closing-empty" class="card empty-state">
-                <i class="fas fa-moon empty-state-icon"></i>
-                <h3>No Closing Data</h3>
-                <p style="color: var(--gray); margin: 15px 0;">Add ingredients first to perform night closing.</p>
+          <!-- NIGHT CLOSING TAB -->
+<div id="closing" class="tab-content">
+    <div id="closing-empty" class="card empty-state">
+        <i class="fas fa-moon empty-state-icon"></i>
+        <h3>No Closing Data</h3>
+        <p style="color: var(--gray); margin: 15px 0;">Add ingredients first to perform night closing.</p>
+    </div>
+    
+    <div id="closing-content" class="hidden">
+        <!-- Quick Upload Closing Section - Collapsible -->
+        <div class="card" style="background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%); border: 2px solid #f59e0b;">
+            <div class="card-header">
+                <h2 class="card-title" style="color: #b45309;"><i class="fas fa-cloud-upload-alt"></i> Quick Upload Closing Report</h2>
+                <button type="button" class="btn btn-warning" onclick="toggleClosingUpload()">
+                    <i class="fas fa-upload"></i> Upload Report
+                </button>
             </div>
             
-            <div id="closing-content" class="hidden">
-                <!-- NEW: Upload Closing Section -->
-                <div class="card" style="background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%); border: 2px solid #f59e0b;">
-                    <div class="card-header">
-                        <h2 class="card-title" style="color: #b45309;"><i class="fas fa-cloud-upload-alt"></i> Quick Upload Closing Report</h2>
+            <!-- Hidden upload area -->
+            <div id="closing-upload-area" style="display: none;">
+                <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
+                    Upload Variance Report CSV/Excel. Format: ingredient_name, unit, opening, grn_today, available, physical, consumed, cost_per_unit
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">Closing Date:</label>
+                        <input type="date" class="form-input" id="quick-closing-date" style="width: 100%;">
                     </div>
-                    <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
-                        Upload Variance Report CSV/Excel. Format: ingredient_name, unit, opening, grn_today, available, physical, consumed, cost_per_unit
-                    </p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                        <div>
-                            <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">Closing Date:</label>
-                            <input type="date" class="form-input" id="quick-closing-date" style="width: 100%;">
-                        </div>
-                        <div>
-                            <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">Closed By:</label>
-                            <input type="text" class="form-input" id="quick-closed-by" placeholder="Enter name" style="width: 100%;">
-                        </div>
+                    <div>
+                        <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">Closed By:</label>
+                        <input type="text" class="form-input" id="quick-closed-by" placeholder="Enter name" style="width: 100%;">
                     </div>
-                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                        <div class="upload-area" onclick="document.getElementById('quick-closing-upload').click()" style="flex: 1; min-width: 300px; padding: 30px; border-color: #f59e0b;">
-                            <i class="fas fa-file-csv upload-icon" style="color: #f59e0b; font-size: 48px;"></i>
-                            <h4 style="margin-bottom: 5px;">Click to upload Closing Report</h4>
-                            <p style="color: var(--gray); font-size: 13px;">.csv, .xlsx or .xls files</p>
-                            <input type="file" id="quick-closing-upload" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleQuickClosingUpload(event)">
-                        </div>
-                        <div style="flex: 1; min-width: 300px;">
-                            <div id="quick-closing-preview" style="display: none;">
-                                <div id="quick-closing-content" style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #f59e0b; max-height: 200px; overflow-y: auto;"></div>
-                                <button class="btn btn-warning" style="width: 100%; margin-top: 10px;" onclick="confirmQuickClosing()">
-                                    <i class="fas fa-check"></i> Confirm & Save Closing
-                                </button>
-                            </div>
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div class="upload-area" onclick="document.getElementById('quick-closing-upload').click()" style="flex: 1; min-width: 300px; padding: 30px; border-color: #f59e0b;">
+                        <i class="fas fa-file-csv upload-icon" style="color: #f59e0b; font-size: 48px;"></i>
+                        <h4 style="margin-bottom: 5px;">Click to upload Closing Report</h4>
+                        <p style="color: var(--gray); font-size: 13px;">.csv, .xlsx or .xls files</p>
+                        <input type="file" id="quick-closing-upload" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleQuickClosingUpload(event)">
+                    </div>
+                    <div style="flex: 1; min-width: 300px;">
+                        <div id="quick-closing-preview" style="display: none;">
+                            <div id="quick-closing-content" style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #f59e0b; max-height: 200px; overflow-y: auto;"></div>
+                            <button class="btn btn-warning" style="width: 100%; margin-top: 10px;" onclick="confirmQuickClosing()">
+                                <i class="fas fa-check"></i> Confirm & Save Closing
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
                 <div class="card">
                     <div class="card-header">
@@ -5247,6 +5254,11 @@ async function confirmQuickClosing() {
     refreshDashboard();
     loadClosingData();
     showNotification(`🌙 Closing uploaded! ${closingItems.length} items saved.`);
+}
+function toggleClosingUpload() {
+    const uploadArea = document.getElementById('closing-upload-area');
+    const isHidden = uploadArea.style.display === 'none';
+    uploadArea.style.display = isHidden ? 'block' : 'none';
 }
     </script>
 </body>
