@@ -395,6 +395,28 @@ tr:hover td{background:#fafafa;}
      INGREDIENTS
 ══════════════════════════════════════ -->
 <div id="t-ingredients" class="tab">
+
+  <!-- Quick upload strip -->
+  <div class="card" style="border:2px solid #dbeafe;background:linear-gradient(135deg,#eff6ff,#fff);">
+    <div class="card-header">
+      <span class="card-title" style="color:#1d4ed8;"><i class="fas fa-cloud-upload-alt"></i> Upload Ingredients Excel</span>
+      <button class="btn btn-sm" style="background:var(--info);color:#fff;" onclick="tog('ing-upload-body')"><i class="fas fa-chevron-down"></i> Upload</button>
+    </div>
+    <div id="ing-upload-body" style="display:none;">
+      <p style="font-size:12px;color:var(--mid);margin-bottom:12px;">
+        Columns: <strong>ingredient_name, category, unit, current_stock, min_level, cost_per_unit, supplier, location</strong>
+        — download the template from the Templates button in the header.
+      </p>
+      <div class="drop-zone" onclick="document.getElementById('ing-upload-file').click()">
+        <i class="fas fa-file-excel"></i>
+        <strong>Click to upload Ingredients Excel</strong>
+        <p style="font-size:12px;color:var(--mid);margin-top:4px;">.xlsx or .xls</p>
+        <input type="file" id="ing-upload-file" accept=".xlsx,.xls" style="display:none;" onchange="handleIngredientsUploadFile(event)">
+      </div>
+      <div id="ing-upload-preview" style="display:none;margin-top:14px;"></div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-header">
       <span class="card-title"><i class="fas fa-boxes"></i> Ingredients</span>
@@ -1190,7 +1212,7 @@ function exportIngredients() {
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Ingredients');
-  XLSX.writeFile(wb, `Ingredients_${new Date().toISOString().slice(0,10)}.xlsx`);
+  blobDownload(wb, `Ingredients_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 // ADD / EDIT INGREDIENT
@@ -2019,7 +2041,7 @@ function exportClosingReport() {
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Closing Report');
-  XLSX.writeFile(wb, `Closing_${date}.xlsx`);
+  blobDownload(wb, `Closing_${date}.xlsx`);
 }
 
 // ─────────────────────────────────────────────
@@ -2080,63 +2102,179 @@ async function saveOpeningStock() {
 // ─────────────────────────────────────────────
 // TEMPLATES
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// BLOB DOWNLOAD HELPER
+// XLSX.writeFile fails on file:// protocol
+// This works everywhere
+// ─────────────────────────────────────────────
+function blobDownload(wb, filename) {
+  const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+  const blob  = new Blob([wbout], { type:'application/octet-stream' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url;
+  a.download  = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
 function dlTemplate(type) {
-  let wb, ws, data;
+  let wb, ws, data, filename;
   wb = XLSX.utils.book_new();
 
   if (type === 'ingredients') {
     data = [
-      { ingredient_name:'Chicken Breast', category:'chicken', unit:'kg', current_stock:50, min_level:10, cost_per_unit:450, supplier:'Fresh Farms', location:'Cold Storage A' },
-      { ingredient_name:'Burger Bun',     category:'bread',   unit:'pcs', current_stock:200, min_level:50, cost_per_unit:25,  supplier:'Bakery Plus', location:'Dry Store' },
-      { ingredient_name:'Tomato Sauce',   category:'sauce',   unit:'ml',  current_stock:5000, min_level:1000, cost_per_unit:0.5, supplier:'Best Foods', location:'Dry Store' },
-      { ingredient_name:'Cheddar Cheese', category:'cheese',  unit:'kg',  current_stock:15, min_level:3, cost_per_unit:900, supplier:'Dairy Co', location:'Cold Storage B' },
+      { ingredient_name:'Chicken Breast', category:'chicken', unit:'kg',  current_stock:50,   min_level:10,   cost_per_unit:450, supplier:'Fresh Farms', location:'Cold Storage A' },
+      { ingredient_name:'Burger Bun',     category:'bread',   unit:'pcs', current_stock:200,  min_level:50,   cost_per_unit:25,  supplier:'Bakery Plus', location:'Dry Store' },
+      { ingredient_name:'Tomato Sauce',   category:'sauce',   unit:'ml',  current_stock:5000, min_level:1000, cost_per_unit:0.5, supplier:'Best Foods',  location:'Dry Store' },
+      { ingredient_name:'Cheddar Cheese', category:'cheese',  unit:'kg',  current_stock:15,   min_level:3,    cost_per_unit:900, supplier:'Dairy Co',    location:'Cold Storage B' },
     ];
     ws = XLSX.utils.json_to_sheet(data);
-    // Add note row
     XLSX.utils.book_append_sheet(wb, ws, 'Ingredients');
-    XLSX.writeFile(wb, 'OvenX_Ingredients_Template.xlsx');
+    filename = 'OvenX_Ingredients_Template.xlsx';
 
   } else if (type === 'opening') {
-    // Use current ingredients if available, else sample
-    if (DB.ingredients.length > 0) {
-      data = DB.ingredients.map(i=>({ ingredient_name: i.name, unit: i.unit, opening_stock: safe(i.currentstock) }));
-    } else {
-      data = [
-        { ingredient_name:'Chicken Breast', unit:'kg', opening_stock:50 },
-        { ingredient_name:'Burger Bun',     unit:'pcs', opening_stock:200 },
-      ];
-    }
+    data = DB.ingredients.length > 0
+      ? DB.ingredients.map(i => ({ ingredient_name: i.name, unit: i.unit, opening_stock: safe(i.currentstock) }))
+      : [
+          { ingredient_name:'Chicken Breast', unit:'kg',  opening_stock:50  },
+          { ingredient_name:'Burger Bun',     unit:'pcs', opening_stock:200 },
+        ];
     ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'Opening Stock');
-    XLSX.writeFile(wb, 'OvenX_OpeningStock_Template.xlsx');
+    filename = 'OvenX_OpeningStock_Template.xlsx';
 
   } else if (type === 'grn') {
     data = [
-      { ingredient_name:'Chicken Breast', qty:20,  unit:'kg',  unit_cost:450 },
-      { ingredient_name:'Burger Bun',     qty:100, unit:'pcs', unit_cost:25  },
-      { ingredient_name:'Tomato Sauce',   qty:2000, unit:'ml', unit_cost:0.5 },
+      { ingredient_name:'Chicken Breast', qty:20,   unit:'kg',  unit_cost:450 },
+      { ingredient_name:'Burger Bun',     qty:100,  unit:'pcs', unit_cost:25  },
+      { ingredient_name:'Tomato Sauce',   qty:2000, unit:'ml',  unit_cost:0.5 },
     ];
     ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'GRN');
-    XLSX.writeFile(wb, 'OvenX_GRN_Template.xlsx');
+    filename = 'OvenX_GRN_Template.xlsx';
 
   } else if (type === 'closing') {
-    // Use current ingredients if available
-    if (DB.ingredients.length > 0) {
-      data = DB.ingredients.map(i=>({ ingredient_name: i.name, unit: i.unit, physical_count: '' }));
-    } else {
-      data = [
-        { ingredient_name:'Chicken Breast', unit:'kg',  physical_count:'' },
-        { ingredient_name:'Burger Bun',     unit:'pcs', physical_count:'' },
-      ];
-    }
+    data = DB.ingredients.length > 0
+      ? DB.ingredients.map(i => ({ ingredient_name: i.name, unit: i.unit, physical_count: '' }))
+      : [
+          { ingredient_name:'Chicken Breast', unit:'kg',  physical_count:'' },
+          { ingredient_name:'Burger Bun',     unit:'pcs', physical_count:'' },
+        ];
     ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'Night Closing');
-    XLSX.writeFile(wb, 'OvenX_Closing_Template.xlsx');
+    filename = 'OvenX_Closing_Template.xlsx';
+
+  } else {
+    return;
   }
+
+  // Blob download — works on both file:// and http://
+  blobDownload(wb, filename);
 }
 
-// UPLOAD INGREDIENTS EXCEL
+// UPLOAD INGREDIENTS EXCEL — triggered from file input
+let _pendingIngredients = null;
+
+async function handleIngredientsUploadFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const wb   = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+
+    const parsed = [], skipped = [];
+    rows.forEach(row => {
+      const name = (row['ingredient_name']||row['name']||row['Name']||'').toString().trim();
+      if (!name) return;
+      const rec = {
+        id:           uid(),
+        name,
+        category:     (row['category']||row['Category']||'general').toString().toLowerCase().trim(),
+        unit:         (row['unit']||row['Unit']||'pcs').toString().toLowerCase().trim(),
+        currentstock: safe(row['current_stock']||row['Current Stock']||0),
+        openingstock: safe(row['current_stock']||row['Current Stock']||0),
+        openingdate:  bizDayToday(),
+        minlevel:     safe(row['min_level']||row['Min Level']||0),
+        costperunit:  safe(row['cost_per_unit']||row['Cost Per Unit']||0),
+        supplier:     (row['supplier']||row['Supplier']||'').toString().trim(),
+        location:     (row['location']||row['Location']||'').toString().trim(),
+        updatedat:    new Date().toISOString()
+      };
+      if (rec.costperunit === 0) skipped.push(name + ' (no cost)');
+      parsed.push(rec);
+    });
+
+    _pendingIngredients = parsed;
+
+    const prev = document.getElementById('ing-upload-preview');
+    prev.style.display = 'block';
+    prev.innerHTML = `
+      <div style="background:#eff6ff;border-radius:10px;padding:14px;border:2px solid #bfdbfe;">
+        <strong style="color:#1d4ed8;">${parsed.length} ingredients found</strong>
+        ${skipped.length ? `<br><span style="color:var(--warning);font-size:12px;">⚠️ No cost set for: ${skipped.slice(0,5).join(', ')}${skipped.length>5?'…':''}</span>` : ''}
+        <div class="tbl-wrap" style="margin-top:10px;max-height:220px;overflow-y:auto;">
+          <table>
+            <thead><tr><th>Name</th><th>Category</th><th>Unit</th><th>Stock</th><th>Cost/Unit</th></tr></thead>
+            <tbody>
+              ${parsed.slice(0,10).map(r=>`<tr>
+                <td style="font-weight:600;">${r.name}</td>
+                <td>${r.category}</td>
+                <td><span class="unit-pill">${r.unit}</span></td>
+                <td>${fmtNum(r.currentstock,3)}</td>
+                <td>${fmtCurrency(r.costperunit)}</td>
+              </tr>`).join('')}
+              ${parsed.length>10?`<tr><td colspan="5" style="text-align:center;color:var(--mid);">…and ${parsed.length-10} more</td></tr>`:''}
+            </tbody>
+          </table>
+        </div>
+        <button class="btn" style="width:100%;margin-top:12px;background:var(--info);color:#fff;" onclick="commitIngredientsUpload()">
+          <i class="fas fa-check"></i> Confirm & Save ${parsed.length} Ingredients
+        </button>
+      </div>
+    `;
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function commitIngredientsUpload() {
+  if (!_pendingIngredients || !_pendingIngredients.length) return;
+  setSyncStatus('busy', `Saving ${_pendingIngredients.length} ingredients…`);
+
+  let saved = 0;
+  // Upsert in batches of 50
+  const batchSize = 50;
+  for (let i = 0; i < _pendingIngredients.length; i += batchSize) {
+    const batch = _pendingIngredients.slice(i, i + batchSize);
+    const { error } = await sb.from('ingredients').upsert(batch, {onConflict:'id'});
+    if (error) { toast('❌ ' + error.message, 'err'); setSyncStatus('ok',''); return; }
+    saved += batch.length;
+    setSyncStatus('busy', `Saved ${saved}/${_pendingIngredients.length}…`);
+  }
+
+  // Update local DB
+  _pendingIngredients.forEach(rec => {
+    const idx = DB.ingredients.findIndex(i => i.id === rec.id);
+    if (idx >= 0) DB.ingredients[idx] = rec; else DB.ingredients.push(rec);
+  });
+  DB.ingredients.sort((a,b) => a.name.localeCompare(b.name));
+
+  _pendingIngredients = null;
+  document.getElementById('ing-upload-file').value  = '';
+  document.getElementById('ing-upload-preview').style.display = 'none';
+  document.getElementById('ing-upload-body').style.display    = 'none';
+
+  populateCategoryFilter();
+  renderIngredients();
+  renderDashboard();
+  setSyncStatus('ok', `Synced · ${DB.ingredients.length} items`);
+  toast(`✅ ${saved} ingredients saved`);
+}
+
+// UPLOAD INGREDIENTS EXCEL — legacy function kept for compatibility
 async function handleIngredientsUpload(file) {
   const reader = new FileReader();
   reader.onload = async ev => {
