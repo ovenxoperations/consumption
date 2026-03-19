@@ -1821,9 +1821,8 @@
         }
 
         function getStockStatus(ingredient) {
-    // Use current_stock instead of currentStock
-    const currentStock = parseFloat(ingredient.current_stock) || 0;
-    const minLevel = parseFloat(ingredient.min_level) || 0;
+    const currentStock = parseFloat(ingredient.currentstock) || 0;
+    const minLevel = parseFloat(ingredient.minlevel) || 0;
     
     if (currentStock <= 0) return { label: 'Stock Out', class: 'badge-danger', level: 'out' };
     if (currentStock <= minLevel) return { label: 'Low Stock', class: 'badge-warning', level: 'low' };
@@ -1953,18 +1952,19 @@
                 
                 // Transform ingredients
                 inventoryData.ingredients = (ingredients || []).map(ing => ({
-                    id: String(ing.id),
-                    name: ing.name,
-                    category: ing.category,
-                    unit: ing.unit,
-                    currentStock: parseFloat(ing.current_stock) || 0,
-                    openingStock: ing.opening_stock !== null ? parseFloat(ing.opening_stock) : undefined,
-                    openingStockDate: ing.opening_stock_date,
-                    minLevel: parseFloat(ing.min_level) || 0,
-                    costPerUnit: parseFloat(ing.cost_per_unit) || 0,
-                    supplier: ing.supplier || '',
-                    location: ing.location || ''
-                }));
+    id: String(ing.id),
+    name: ing.name,
+    category: ing.category,
+    unit: ing.unit,
+    // SQL lowercase → JS object (keep consistent lowercase)
+    currentstock: parseFloat(ing.currentstock) || 0,
+    openingstock: ing.openingstock !== null ? parseFloat(ing.openingstock) : undefined,
+    openingstockdate: ing.openingstockdate,
+    minlevel: parseFloat(ing.minlevel) || 0,
+    costperunit: parseFloat(ing.costperunit) || 0,
+    supplier: ing.supplier || '',
+    location: ing.location || ''
+}));
 
                 // Transform recipes
                 inventoryData.recipes = (recipes || []).map(recipe => {
@@ -2093,18 +2093,22 @@
                 name: ingredient.name,
                 category: ingredient.category,
                 unit: ingredient.unit,
-                // Changed to snake_case to match SQL schema
-                currentstock: ingredient.current_stock,
-                openingstock: ingredient.openingstock,
-                openingstockdate: ingredient.openingstockdate,
-                minlevel: ingredient.min_level,
-                costperunit: ingredient.cost_per_unit,
-                supplier: ingredient.supplier,
-                location: ingredient.location,
+                // MATCH SQL SCHEMA: lowercase, no underscores
+                currentstock: ingredient.currentstock || 0,
+                openingstock: ingredient.openingstock !== undefined ? ingredient.openingstock : ingredient.currentstock,
+                openingstockdate: ingredient.openingstockdate || new Date().toISOString().slice(0,10),
+                minlevel: ingredient.minlevel || 0,
+                costperunit: ingredient.costperunit || 0,
+                supplier: ingredient.supplier || '',
+                location: ingredient.location || '',
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
         
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase upsert error:', error);
+            showToast('Save error: ' + error.message, 'error');
+            return false;
+        }
         return true;
     } catch (error) {
         console.error('Error saving ingredient:', error);
@@ -2766,25 +2770,20 @@ if (hour < 4) {
     
     tbody.innerHTML = filtered.map(ing => {
         const status = getStockStatus(ing);
-        // Use current_stock (snake_case from your updated data structure)
-        const currentStock = parseFloat(ing.current_stock) || 0;
-        const minLevel = parseFloat(ing.min_level) || 0;
-        const costPerUnit = parseFloat(ing.cost_per_unit) || 0;
+        // Use lowercase properties
+        const currentStock = parseFloat(ing.currentstock) || 0;
+        const minLevel = parseFloat(ing.minlevel) || 0;
+        const costPerUnit = parseFloat(ing.costperunit) || 0;
         const value = currentStock * costPerUnit;
         const percentage = minLevel > 0 ? (currentStock / minLevel) * 100 : 100;
         
         return `
             <tr>
-                <!-- 1. INGREDIENT -->
                 <td>
                     <div style="font-weight: 800; font-size: 13px;">${ing.name || 'Unknown'}</div>
                     <div style="font-size: 11px; color: var(--gray);">${ing.supplier || 'No supplier'}</div>
                 </td>
-                
-                <!-- 2. CATEGORY -->
                 <td><span class="badge badge-info">${getCategoryLabel(ing.category)}</span></td>
-                
-                <!-- 3. STOCK LEVEL -->
                 <td>
                     <div class="stock-control">
                         <button class="stock-btn minus" onclick="adjustStock('${ing.id}', -1)">-</button>
@@ -2795,23 +2794,11 @@ if (hour < 4) {
                         <div class="progress-fill ${percentage > 100 ? 'high' : percentage > 50 ? 'medium' : 'low'}" style="width: ${Math.min(percentage, 100)}%"></div>
                     </div>
                 </td>
-                
-                <!-- 4. MIN LEVEL -->
                 <td>${minLevel.toFixed(2)}</td>
-                
-                <!-- 5. UNIT -->
                 <td><span class="unit-badge">${ing.unit || 'pcs'}</span></td>
-                
-                <!-- 6. COST/UNIT -->
                 <td class="cost-display">${formatCurrency(costPerUnit)}</td>
-                
-                <!-- 7. VALUE -->
                 <td class="cost-display">${formatCurrency(value)}</td>
-                
-                <!-- 8. STATUS -->
                 <td><span class="badge ${status.class}">${status.label}</span></td>
-                
-                <!-- 9. ACTIONS -->
                 <td>
                     <div class="action-btns">
                         <button class="action-btn edit" onclick="editIngredient('${ing.id}')" title="Edit">
@@ -2832,53 +2819,55 @@ if (hour < 4) {
         }
 
         async function adjustStock(id, change) {
-            const ing = inventoryData.ingredients.find(i => String(i.id) === String(id));
-            if (ing) {
-                ing.currentStock = Math.max(0, ing.currentStock + change);
-                
-                const saved = await saveIngredientToSupabase(ing);
-                if (saved) {
-                    renderIngredients();
-                    refreshDashboard();
-                    showToast(`Stock updated for ${ing.name}`);
-                } else {
-                    showToast('Failed to update stock', 'error');
-                }
-            }
-        }
-
-        async function saveIngredient(e) {
-            e.preventDefault();
-            const form = e.target;
-            
-            const newIngredient = {
-                id: generateId(),
-                name: form.name.value,
-                category: form.category.value,
-                unit: form.unit.value,
-                currentStock: parseFloat(form.currentStock.value) || 0,
-                minLevel: parseFloat(form.minLevel.value) || 0,
-                costPerUnit: parseFloat(form.costPerUnit.value) || 0,
-                supplier: form.supplier.value,
-                location: form.location.value
-            };
-            
-            const saved = await saveIngredientToSupabase(newIngredient);
-            if (!saved) {
-                showToast('❌ Failed to save ingredient', 'error');
-                return;
-            }
-            
-            inventoryData.ingredients.push(newIngredient);
-            
-            closeModal('add-ingredient-modal');
-            form.reset();
+    const ing = inventoryData.ingredients.find(i => String(i.id) === String(id));
+    if (ing) {
+        ing.currentstock = Math.max(0, (ing.currentstock || 0) + change);
+        
+        const saved = await saveIngredientToSupabase(ing);
+        if (saved) {
             renderIngredients();
             refreshDashboard();
-            populateCategoryFilter();
-            updateUIForData();
-            showToast('✅ Ingredient added successfully!');
+            showToast(`Stock updated for ${ing.name}`);
+        } else {
+            showToast('Failed to update stock', 'error');
         }
+    }
+}
+
+        async function saveIngredient(e) {
+    e.preventDefault();
+    const form = e.target;
+    
+    const newIngredient = {
+        id: generateId(),
+        name: form.name.value,
+        category: form.category.value,
+        unit: form.unit.value,
+        currentstock: parseFloat(form.currentStock.value) || 0,
+        minlevel: parseFloat(form.minLevel.value) || 0,
+        costperunit: parseFloat(form.costPerUnit.value) || 0,
+        supplier: form.supplier.value,
+        location: form.location.value,
+        openingstock: parseFloat(form.currentStock.value) || 0,
+        openingstockdate: new Date().toISOString().slice(0, 10)
+    };
+    
+    const saved = await saveIngredientToSupabase(newIngredient);
+    if (!saved) {
+        showToast('❌ Failed to save ingredient', 'error');
+        return;
+    }
+    
+    inventoryData.ingredients.push(newIngredient);
+    
+    closeModal('add-ingredient-modal');
+    form.reset();
+    renderIngredients();
+    refreshDashboard();
+    populateCategoryFilter();
+    updateUIForData();
+    showToast('✅ Ingredient added successfully!');
+}
 
         async function editIngredient(id) {
             const ing = inventoryData.ingredients.find(i => String(i.id) === String(id));
@@ -4613,14 +4602,14 @@ if (hour < 4) {
             name: getStr(row['Name']),
             category: getStr(row['Category'], 'general').toLowerCase(),
             unit: getStr(row['Unit'], 'pcs').toLowerCase(),
-            // Use snake_case to match Supabase columns
-            current_stock: parseNum(row['Current Stock']),
-            min_level: parseNum(row['Min Level']),
-            cost_per_unit: parseNum(row['Cost Per Unit']),
+            // MATCH SQL SCHEMA: lowercase, no underscores
+            currentstock: parseNum(row['Current Stock']),
+            minlevel: parseNum(row['Min Level']),
+            costperunit: parseNum(row['Cost Per Unit']),
             supplier: getStr(row['Supplier']),
             location: getStr(row['Location']),
-            // Initialize opening stock same as current
-            openingstock: parseNum(row['Current Stock']),
+            // Opening stock fields
+            openingstock: parseNum(row['Current Stock']), // Initialize same as current
             openingstockdate: new Date().toISOString().slice(0, 10)
         })).filter(ing => ing.name);
     }
