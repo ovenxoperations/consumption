@@ -17,7 +17,11 @@
     
     <!-- SheetJS for Excel handling -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
+    <!-- PDF.js for PDF processing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
     <style>
         * {
             margin: 0;
@@ -974,67 +978,84 @@
 
         <!-- GRN TAB -->
                 <!-- GRN TAB -->
-        <div id="grn" class="tab-content">
-            <div id="grn-empty" class="card empty-state">
-                <i class="fas fa-truck-loading empty-state-icon"></i>
-                <h3>No GRN Records</h3>
-                <p style="color: var(--gray); margin: 15px 0;">Add ingredients first, then create GRN records.</p>
+<div id="grn" class="tab-content">
+    <div id="grn-empty" class="card empty-state">
+        <i class="fas fa-truck-loading empty-state-icon"></i>
+        <h3>No GRN Records</h3>
+        <p style="color: var(--gray); margin: 15px 0;">Add ingredients first, then create GRN records.</p>
+    </div>
+    
+    <div id="grn-content" class="hidden">
+        <!-- NEW: Upload GRN Section - MUST BE INSIDE grn-content -->
+        <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); border: 2px solid #34d399;">
+            <div class="card-header">
+                <h2 class="card-title" style="color: #059669;"><i class="fas fa-cloud-upload-alt"></i> Quick Upload GRN</h2>
+                <button type="button" class="btn btn-success" onclick="toggleGRNUpload()">
+                    <i class="fas fa-upload"></i> Upload GRN
+                </button>
             </div>
             
-            <div id="grn-content" class="hidden">
-                <!-- NEW: Upload GRN Section -->
-                <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); border: 2px solid #34d399;">
-                    <div class="card-header">
-                        <h2 class="card-title" style="color: #059669;"><i class="fas fa-cloud-upload-alt"></i> Quick Upload GRN</h2>
+            <!-- Hidden upload area -->
+            <div id="grn-upload-area" style="display: none;">
+                <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
+                    Upload GRN Excel or PDF file. PDF will be parsed automatically.
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">GRN Date:</label>
+                        <input type="date" class="form-input" id="quick-grn-date" style="width: 100%;">
                     </div>
-                    <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
-                        Upload GRN Excel file to automatically add stock. Format: Item, Qty, Unit, Unit Cost, Total
-                    </p>
-                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                        <div class="upload-area" onclick="document.getElementById('quick-grn-upload').click()" style="flex: 1; min-width: 300px; padding: 30px; border-color: #34d399;">
-                            <i class="fas fa-file-excel upload-icon" style="color: #059669; font-size: 48px;"></i>
-                            <h4 style="margin-bottom: 5px;">Click to upload GRN Excel</h4>
-                            <p style="color: var(--gray); font-size: 13px;">.xlsx or .xls files</p>
-                            <input type="file" id="quick-grn-upload" accept=".xlsx,.xls" style="display: none;" onchange="handleQuickGRNUpload(event)">
-                        </div>
-                        <div style="flex: 1; min-width: 300px;">
-                            <div id="quick-grn-preview" style="display: none;">
-                                <div id="quick-grn-content" style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #34d399; max-height: 200px; overflow-y: auto;"></div>
-                                <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="confirmQuickGRN()">
-                                    <i class="fas fa-check"></i> Confirm & Save GRN
-                                </button>
-                            </div>
-                        </div>
+                    <div>
+                        <label style="font-size: 13px; color: #6b7280; display: block; margin-bottom: 5px;">Supplier:</label>
+                        <input type="text" class="form-input" id="quick-grn-supplier" placeholder="Enter supplier name" style="width: 100%;">
                     </div>
                 </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title"><i class="fas fa-truck-loading"></i> Goods Receipt Notes (GRN)</h2>
-                        <button class="btn btn-primary" onclick="openModal('grn-modal')">
-                            <i class="fas fa-plus"></i> New GRN
-                        </button>
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div class="upload-area" onclick="document.getElementById('quick-grn-upload').click()" style="flex: 1; min-width: 300px; padding: 30px; border-color: #34d399;">
+                        <i class="fas fa-file-upload upload-icon" style="color: #059669; font-size: 48px;"></i>
+                        <h4 style="margin-bottom: 5px;">Click to upload GRN</h4>
+                        <p style="color: var(--gray); font-size: 13px;">.xlsx, .xls, or .pdf files</p>
+                        <input type="file" id="quick-grn-upload" accept=".xlsx,.xls,.pdf" style="display: none;" onchange="handleQuickGRNUpload(event)">
                     </div>
-                    
-                    <div class="filters">
-                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                            <div>
-                                <label style="font-size: 13px; color: #6b7280; margin-bottom: 4px; display: block;">Filter by Date (Up to 1 month back)</label>
-                                <input type="date" class="form-input" id="grn-date-filter" onchange="filterGRN()">
-                            </div>
-                            <small id="date-filter-hint" style="color: #6b7280; font-size: 12px; display: none;">
-                                <i class="fas fa-info-circle"></i> Clear date to see all GRNs
-                            </small>
-                        </div>                        
-                        <input type="text" class="form-input" id="grn-supplier-filter" placeholder="Filter by supplier..." onkeyup="filterGRN()">
-                    </div>
-
-                    <div id="grn-container">
-                        <!-- Dynamic content -->
+                    <div style="flex: 1; min-width: 300px;">
+                        <div id="quick-grn-preview" style="display: none;">
+                            <div id="quick-grn-content" style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #34d399; max-height: 200px; overflow-y: auto;"></div>
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="confirmQuickGRN()">
+                                <i class="fas fa-check"></i> Confirm & Save GRN
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-truck-loading"></i> Goods Receipt Notes (GRN)</h2>
+                <button class="btn btn-primary" onclick="openModal('grn-modal')">
+                    <i class="fas fa-plus"></i> New GRN
+                </button>
+            </div>
+            
+            <div class="filters">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div>
+                        <label style="font-size: 13px; color: #6b7280; margin-bottom: 4px; display: block;">Filter by Date (Up to 1 month back)</label>
+                        <input type="date" class="form-input" id="grn-date-filter" onchange="filterGRN()">
+                    </div>
+                    <small id="date-filter-hint" style="color: #6b7280; font-size: 12px; display: none;">
+                        <i class="fas fa-info-circle"></i> Clear date to see all GRNs
+                    </small>
+                </div>                        
+                <input type="text" class="form-input" id="grn-supplier-filter" placeholder="Filter by supplier..." onkeyup="filterGRN()">
+            </div>
+
+            <div id="grn-container">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- CONSUMPTION TAB -->
         <div id="consumption" class="tab-content">
@@ -1962,49 +1983,74 @@
         }
         
         async function saveGRNToSupabase(grn) {
-            if (!supabaseClient) return false;
+    if (!supabaseClient) {
+        console.error('No Supabase client available');
+        return false;
+    }
+    
+    try {
+        console.log('Saving GRN header:', {
+            id: grn.id,
+            grn_number: grn.grnNumber,
+            date: grn.date,
+            supplier: grn.supplier,
+            total: grn.total
+        });
+        
+        // Save GRN header
+        const { error: grnError } = await supabaseClient
+            .from('grn_history')
+            .insert({
+                id: grn.id,
+                grn_number: grn.grnNumber,
+                date: grn.date,
+                supplier: grn.supplier,
+                invoice_number: grn.invoiceNumber,
+                total: grn.total,
+                notes: grn.notes,
+                created_at: grn.timestamp
+            });
+        
+        if (grnError) {
+            console.error('GRN header error:', grnError);
+            throw grnError;
+        }
+        
+        console.log('GRN header saved, saving items...');
+        
+        // Save GRN items
+        if (grn.items.length > 0) {
+            const itemsToInsert = grn.items.map(item => ({
+    grn_id: grn.id,
+    ingredient_id: item.ingredientId,     // can be null
+    name: item.name,
+    qty: item.qty,
+    unit: item.unit,
+    unit_cost: item.unitCost,
+    total: item.total,
+    item_supplier: item.itemSupplier || null
+}));
             
-            try {
-                // Save GRN header
-                const { error: grnError } = await supabaseClient
-                    .from('grn_history')
-                    .insert({
-                        id: grn.id,
-                        grn_number: grn.grnNumber,
-                        date: grn.date,
-                        supplier: grn.supplier,
-                        invoice_number: grn.invoiceNumber,
-                        total: grn.total,
-                        notes: grn.notes,
-                        created_at: grn.timestamp
-                    });
-                
-                if (grnError) throw grnError;
-                
-                // Save GRN items
-                if (grn.items.length > 0) {
-                    const { error: itemsError } = await supabaseClient
-                        .from('grn_items')
-                        .insert(grn.items.map(item => ({
-                            grn_id: grn.id,
-                            ingredient_id: item.ingredientId,
-                            name: item.name,
-                            quantity: item.qty,
-                            unit: item.unit,
-                            unit_cost: item.unitCost,
-                            total: item.total,
-                            item_supplier: item.itemSupplier
-                        })));
-                    
-                    if (itemsError) throw itemsError;
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('Error saving GRN:', error);
-                return false;
+            console.log('Items to insert:', itemsToInsert);
+            
+            const { error: itemsError } = await supabaseClient
+                .from('grn_items')
+                .insert(itemsToInsert);
+            
+            if (itemsError) {
+                console.error('GRN items error:', itemsError);
+                throw itemsError;
             }
         }
+        
+        console.log('GRN saved successfully');
+        return true;
+    } catch (error) {
+        console.error('Error in saveGRNToSupabase:', error);
+        alert('Error saving GRN: ' + (error.message || JSON.stringify(error)));
+        return false;
+    }
+}
         
         async function deleteGRNFromSupabase(id) {
             if (!supabaseClient) return false;
@@ -5259,6 +5305,584 @@ function toggleClosingUpload() {
     const uploadArea = document.getElementById('closing-upload-area');
     const isHidden = uploadArea.style.display === 'none';
     uploadArea.style.display = isHidden ? 'block' : 'none';
+}
+// Toggle GRN upload area
+function toggleGRNUpload() {
+    const uploadArea = document.getElementById('grn-upload-area');
+    const isHidden = uploadArea.style.display === 'none';
+    uploadArea.style.display = isHidden ? 'block' : 'none';
+    
+    // Set default date
+    if (isHidden) {
+        document.getElementById('quick-grn-date').value = new Date().toISOString().slice(0,10);
+    }
+}
+
+// Enhanced GRN upload handler with PDF support
+async function handleQuickGRNUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    
+    // Set default values from filename if possible
+    const filename = file.name;
+    const dateMatch = filename.match(/(\d{4})[-]?(\d{2})[-]?(\d{2})/);
+    if (dateMatch) {
+        document.getElementById('quick-grn-date').value = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+    }
+    
+    if (['xlsx', 'xls'].includes(fileExt)) {
+        await handleQuickGRNExcel(file);
+    } else if (fileExt === 'pdf') {
+        await handleQuickGRNPDF(file);
+    } else {
+        alert('Please upload Excel (.xlsx, .xls) or PDF file');
+    }
+}
+
+// Handle Excel upload (your existing logic, slightly modified)
+async function handleQuickGRNExcel(file) {
+    const reader = new FileReader();
+    
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+            
+            if (jsonData.length === 0) {
+                alert('No data found in file');
+                return;
+            }
+
+            // Parse Excel data
+            const items = parseGRNData(jsonData, 'excel');
+            displayGRNPreview(items, file.name);
+            
+        } catch (error) {
+            console.error('Excel parse error:', error);
+            alert('Error reading Excel file: ' + error.message);
+        }
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+// Handle PDF upload with better parsing
+async function handleQuickGRNPDF(file) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let allItems = [];
+        let grnNumber = null;
+        let mainSupplier = null;
+        let invoiceNumber = null;
+        let grnDate = null;
+        
+        // Extract text from all pages with coordinates
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            
+            // Sort items by Y coordinate (top to bottom) then X (left to right)
+            const items = textContent.items.sort((a, b) => {
+                const yDiff = b.transform[5] - a.transform[5]; // Y coordinate (higher = higher on page)
+                if (Math.abs(yDiff) > 5) return yDiff; // If more than 5 units apart, sort by Y
+                return a.transform[4] - b.transform[4]; // Otherwise sort by X
+            });
+            
+            // Group items by lines based on Y coordinate
+            const lines = [];
+            let currentLine = [];
+            let currentY = null;
+            
+            items.forEach(item => {
+                const y = item.transform[5];
+                if (currentY === null || Math.abs(y - currentY) > 3) {
+                    if (currentLine.length > 0) lines.push(currentLine.join(' ').trim());
+                    currentLine = [item.str];
+                    currentY = y;
+                } else {
+                    currentLine.push(item.str);
+                }
+            });
+            if (currentLine.length > 0) lines.push(currentLine.join(' ').trim());
+            
+            console.log(`Page ${i} lines:`, lines);
+            
+            // Extract metadata from first page
+            if (i === 1) {
+                const fullText = lines.join(' ');
+                const grnMatch = fullText.match(/GRN[:\s-]+([A-Z0-9-]+)/i);
+                if (grnMatch) grnNumber = grnMatch[1];
+                
+                const supplierMatch = fullText.match(/Supplier[:\s]+([^\n|]+)/i);
+                if (supplierMatch) mainSupplier = supplierMatch[1].trim();
+                
+                const invoiceMatch = fullText.match(/Invoice[:\s]+(\d+)/i);
+                if (invoiceMatch) invoiceNumber = invoiceMatch[1];
+                
+                const dateMatch = fullText.match(/Date[:\s]+(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{4}-\d{2}-\d{2})/i);
+                if (dateMatch) {
+                    const parsedDate = new Date(dateMatch[1]);
+                    if (!isNaN(parsedDate)) grnDate = parsedDate.toISOString().slice(0,10);
+                }
+            }
+            
+            // Parse items from this page
+            const pageItems = parseGRNLines(lines);
+            allItems = allItems.concat(pageItems);
+        }
+        
+        console.log('Extracted items:', allItems);
+        console.log('GRN Number:', grnNumber);
+        console.log('Supplier:', mainSupplier);
+        
+        if (allItems.length === 0) {
+            alert('Could not extract GRN data from PDF. The format may have changed.');
+            return;
+        }
+        
+        // Set extracted values to form
+        if (grnDate) document.getElementById('quick-grn-date').value = grnDate;
+        if (mainSupplier && !document.getElementById('quick-grn-supplier').value) {
+            document.getElementById('quick-grn-supplier').value = mainSupplier;
+        }
+        
+        displayGRNPreview(allItems, file.name, grnNumber, invoiceNumber);
+        
+    } catch (error) {
+        console.error('PDF parse error:', error);
+        alert('Error reading PDF file: ' + error.message);
+    }
+}
+
+// Parse GRN lines using multiple strategies
+function parseGRNLines(lines) {
+    const items = [];
+    let currentSupplier = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Skip empty lines and headers
+        if (!line || line.length < 3) continue;
+        
+        // Detect supplier sections
+        if (line.includes('🏪') || (line.startsWith('#') && !line.includes('Item'))) {
+            const supplierMatch = line.match(/🏪\s*([^\n]+)/) || line.match(/#\s*([^\n#]+)/);
+            if (supplierMatch) {
+                currentSupplier = supplierMatch[1].trim();
+                // Clean up supplier name
+                currentSupplier = currentSupplier.replace(/Subtotal.*$/, '').trim();
+            }
+            continue;
+        }
+        
+        // Skip table headers and metadata lines
+        if (line.includes('Item') && line.includes('Qty')) continue;
+        if (line.includes('Subtotal')) continue;
+        if (line.includes('GRAND TOTAL')) continue;
+        if (line.includes('Received By')) continue;
+        if (line.includes('Checked By')) continue;
+        if (line.includes('Approved By')) continue;
+        if (line.includes('about:blank')) continue;
+        if (line.includes('GRN-')) continue;
+        if (line.includes('Date:')) continue;
+        if (line.includes('Supplier:')) continue;
+        if (line.includes('Invoice:')) continue;
+        if (line.match(/^\d+\/\d+$/)) continue; // Page numbers like 2/4
+        
+        // Try to parse as table row (markdown format)
+        // |Item|Qty|Unit Cost|Total|
+        if (line.startsWith('|') && line.includes('|')) {
+            const parts = line.split('|').map(p => p.trim()).filter(p => p);
+            if (parts.length >= 4 && !parts[0].includes('Item')) {
+                const name = parts[0];
+                const qtyMatch = parts[1].match(/^(\d+(?:\.\d+)?)\s*(\w+)$/);
+                const costMatch = parts[2].match(/Rs\s*([\d,]+(?:\.\d+)?)/);
+                const totalMatch = parts[3].match(/Rs\s*([\d,]+(?:\.\d+)?)/);
+                
+                if (qtyMatch && (costMatch || totalMatch)) {
+                    const qty = parseFloat(qtyMatch[1]);
+                    const unit = qtyMatch[2].toLowerCase();
+                    const unitCost = costMatch ? parseFloat(costMatch[1].replace(/,/g, '')) : 0;
+                    const total = totalMatch ? parseFloat(totalMatch[1].replace(/,/g, '')) : (qty * unitCost);
+                    
+                    const ingredient = findIngredientByName(name);
+                    
+                    items.push({
+                        ingredientId: ingredient ? ingredient.id : null,
+                        name: name,
+                        qty: qty,
+                        unit: unit,
+                        unitCost: unitCost,
+                        total: total,
+                        itemSupplier: currentSupplier || 'Uploaded'
+                    });
+                    continue;
+                }
+            }
+        }
+        
+        // Try to parse as simple format (space-separated columns)
+        // Oil Simple 3 l Rs 540.00 Rs 1,620.00
+        const simpleMatch = line.match(/^([A-Za-z\s]+?)\s+(\d+(?:\.\d+)?)\s*(g|ml|pcs|kg|l|pkt)\s+Rs\s*([\d,]+(?:\.\d+)?)\s+Rs\s*([\d,]+(?:\.\d+)?)/i);
+        
+        if (simpleMatch) {
+            const name = simpleMatch[1].trim();
+            const qty = parseFloat(simpleMatch[2]);
+            const unit = simpleMatch[3].toLowerCase();
+            const unitCost = parseFloat(simpleMatch[4].replace(/,/g, ''));
+            const total = parseFloat(simpleMatch[5].replace(/,/g, ''));
+            
+            const ingredient = findIngredientByName(name);
+            
+            items.push({
+                ingredientId: ingredient ? ingredient.id : null,
+                name: name,
+                qty: qty,
+                unit: unit,
+                unitCost: unitCost,
+                total: total,
+                itemSupplier: currentSupplier || 'Uploaded'
+            });
+            continue;
+        }
+        
+        // Try alternative format (no Rs prefix on unit cost)
+        // BlackSeedBun 30 pcs Rs 43.00 Rs 1,290.00
+        const altMatch = line.match(/^([A-Za-z\s]+?)\s+(\d+(?:\.\d+)?)\s*(g|ml|pcs|kg|l|pkt)\s+([\d,]+(?:\.\d+)?)\s+Rs\s*([\d,]+(?:\.\d+)?)/i);
+        
+        if (altMatch) {
+            const name = altMatch[1].trim();
+            const qty = parseFloat(altMatch[2]);
+            const unit = altMatch[3].toLowerCase();
+            const unitCost = parseFloat(altMatch[4].replace(/,/g, ''));
+            const total = parseFloat(altMatch[5].replace(/,/g, ''));
+            
+            const ingredient = findIngredientByName(name);
+            
+            items.push({
+                ingredientId: ingredient ? ingredient.id : null,
+                name: name,
+                qty: qty,
+                unit: unit,
+                unitCost: unitCost,
+                total: total,
+                itemSupplier: currentSupplier || 'Uploaded'
+            });
+        }
+    }
+    
+    return items;
+}
+
+// Helper function to find ingredient by name
+function findIngredientByName(name) {
+    const cleanName = name.toLowerCase().trim();
+    return inventoryData.ingredients.find(ing => {
+        const ingName = ing.name.toLowerCase();
+        return ingName === cleanName || 
+               ingName.includes(cleanName) || 
+               cleanName.includes(ingName) ||
+               // Handle common variations
+               cleanName.replace(/\s+/g, '') === ingName.replace(/\s+/g, '') ||
+               // Handle word order variations
+               cleanName.split(/\s+/).sort().join(' ') === ingName.split(/\s+/).sort().join(' ');
+    });
+}
+
+// Updated display function with invoice number
+function displayGRNPreview(items, filename, grnNumber = null, invoiceNumber = null) {
+    if (items.length === 0) {
+        alert('No items found in file');
+        return;
+    }
+    
+    const date = document.getElementById('quick-grn-date').value || new Date().toISOString().slice(0,10);
+    const supplier = document.getElementById('quick-grn-supplier').value || 'Uploaded Supplier';
+    
+    quickGRNData = {
+        grnNumber: grnNumber || `GRN-${date.replace(/-/g,'')}-${Math.floor(Math.random()*1000)}`,
+        date: date,
+        supplier: supplier,
+        invoiceNumber: invoiceNumber || '',
+        items: items,
+        total: items.reduce((sum, item) => sum + item.total, 0)
+    };
+
+    // Show preview
+    const previewDiv = document.getElementById('quick-grn-preview');
+    const contentDiv = document.getElementById('quick-grn-content');
+    
+    // Group by supplier
+    const supplierGroups = {};
+    items.forEach(item => {
+        const sup = item.itemSupplier || supplier;
+        if (!supplierGroups[sup]) supplierGroups[sup] = [];
+        supplierGroups[sup].push(item);
+    });
+    
+    contentDiv.innerHTML = `
+        <div style="font-size: 14px; margin-bottom: 10px;">
+            <strong>GRN:</strong> ${quickGRNData.grnNumber}<br>
+            ${invoiceNumber ? `<strong>Invoice:</strong> ${invoiceNumber}<br>` : ''}
+            <strong>Date:</strong> ${quickGRNData.date}<br>
+            <strong>Items:</strong> ${items.length}<br>
+            <strong>Total:</strong> ${formatCurrency(quickGRNData.total)}
+        </div>
+        ${Object.entries(supplierGroups).map(([sup, supItems]) => `
+            <div style="margin-top: 10px; padding: 10px; background: #f0fdf4; border-radius: 8px;">
+                <strong style="color: #059669;">🏪 ${sup}</strong>
+                <table style="width: 100%; font-size: 12px; margin-top: 5px;">
+                    <tbody>
+                        ${supItems.slice(0, 3).map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td style="text-align: right;">${item.qty} ${item.unit}</td>
+                                <td style="text-align: right;">${formatCurrency(item.total)}</td>
+                                <td style="text-align: center;">${item.ingredientId ? '✅' : '⚠️'}</td>
+                            </tr>
+                        `).join('')}
+                        ${supItems.length > 3 ? `<tr><td colspan="4" style="text-align: center;">... and ${supItems.length - 3} more</td></tr>` : ''}
+                    </tbody>
+                </table>
+            </div>
+        `).join('')}
+    `;
+    
+    previewDiv.style.display = 'block';
+}
+
+async function confirmQuickGRN() {
+    if (!quickGRNData) {
+        alert('No GRN data to save');
+        return;
+    }
+    
+    console.log('Confirming GRN:', quickGRNData);
+    
+    // Show print preview before saving
+    const shouldPrint = confirm('GRN ready to save. Print GRN now?');
+    
+    // Filter out items that couldn't be matched to ingredients (optional - you can keep them)
+    // Or keep them but log warnings
+    const unmatchedItems = quickGRNData.items.filter(item => !item.ingredientId);
+    if (unmatchedItems.length > 0) {
+        console.warn('Unmatched items (will save without stock update):', unmatchedItems);
+        const proceed = confirm(`${unmatchedItems.length} items couldn't be matched to ingredients. Save anyway?`);
+        if (!proceed) return;
+    }
+    
+    const grn = {
+        id: generateId(),
+        grnNumber: quickGRNData.grnNumber,
+        date: quickGRNData.date,
+        supplier: quickGRNData.supplier,
+        invoiceNumber: quickGRNData.invoiceNumber || '',
+        items: quickGRNData.items.map(item => ({
+            ingredientId: item.ingredientId, // Can be null
+            name: item.name,
+            qty: item.qty,
+            unit: item.unit,
+            unitCost: item.unitCost,
+            total: item.total,
+            itemSupplier: item.itemSupplier || quickGRNData.supplier
+        })),
+        total: quickGRNData.total,
+        notes: 'Quick upload from GRN tab',
+        timestamp: new Date().toISOString()
+    };
+    
+    console.log('Prepared GRN object:', grn);
+    
+    // Update stock ONLY for matched ingredients
+    let stockUpdateCount = 0;
+    for (const item of grn.items) {
+        if (item.ingredientId) {
+            const ingredient = inventoryData.ingredients.find(i => i.id === item.ingredientId);
+            if (ingredient) {
+                ingredient.currentStock += item.qty;
+                const saved = await saveIngredientToSupabase(ingredient);
+                if (saved) {
+                    stockUpdateCount++;
+                    console.log(`Updated stock for ${ingredient.name}: +${item.qty} ${item.unit}`);
+                } else {
+                    console.error(`Failed to update stock for ${ingredient.name}`);
+                }
+            }
+        }
+    }
+    console.log(`Stock updated for ${stockUpdateCount} ingredients`);
+    
+    // Save GRN to Supabase with error handling
+    console.log('Calling saveGRNToSupabase...');
+    const saved = await saveGRNToSupabase(grn);
+    
+    if (!saved) {
+        console.error('saveGRNToSupabase returned false');
+        alert('Failed to save GRN. Check console for details.');
+        return;
+    }
+    
+    console.log('GRN saved successfully');
+    
+    // Add to local data
+    inventoryData.grnHistory.unshift(grn);
+    await saveData();
+    
+    // Reset form
+    quickGRNData = null;
+    document.getElementById('quick-grn-upload').value = '';
+    document.getElementById('quick-grn-preview').style.display = 'none';
+    document.getElementById('quick-grn-supplier').value = '';
+    document.getElementById('grn-upload-area').style.display = 'none';
+    
+    // Refresh UI
+    renderIngredients();
+    renderGRN();
+    refreshDashboard();
+    
+    if (shouldPrint) {
+        printQuickGRN(grn);
+    } else {
+        showNotification(`✅ GRN ${grn.grnNumber} saved! ${grn.items.length} items, ${stockUpdateCount} stock updates.`);
+    }
+}
+
+// Print GRN in the same format as your PDF
+function printQuickGRN(grn) {
+    // Group items by supplier
+    const supplierGroups = {};
+    grn.items.forEach(item => {
+        const supplier = item.itemSupplier || grn.supplier;
+        if (!supplierGroups[supplier]) {
+            supplierGroups[supplier] = [];
+        }
+        supplierGroups[supplier].push(item);
+    });
+    
+    const supplierSections = Object.entries(supplierGroups).map(([supplier, items]) => {
+        const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+        
+        return `
+            <div style="margin: 20px 0; page-break-inside: avoid;">
+                <h3 style="margin: 0 0 10px 0; padding: 10px; background: #059669; color: white; border-radius: 5px;">
+                    🏪 ${supplier}
+                </h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Item</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Qty</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Unit Cost</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(item => `
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${item.name}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                                    ${item.qty} ${item.unit}
+                                </td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">
+                                    ${formatCurrency(item.unitCost)}
+                                </td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">
+                                    ${formatCurrency(item.total)}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f0fdf4;">
+                            <td colspan="3" style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">
+                                ${supplier} Subtotal:
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">
+                                ${formatCurrency(subtotal)}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+    }).join('');
+
+    const pw = window.open('', '_blank');
+    pw.document.write(`
+        <html>
+        <head>
+            <title>GRN ${grn.grnNumber}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th, td { border: 1px solid #ddd; padding: 8px; }
+                th { background: #f8fafc; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .summary { margin: 20px 0; padding: 15px; background: #f0fdf4; border-radius: 5px; }
+                @media print {
+                    body { padding: 0; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>GOODS RECEIPT NOTE</h1>
+                <h2>${grn.grnNumber}</h2>
+                <p>Date: ${formatDate(grn.date)} | Supplier: ${grn.supplier}</p>
+                <p>Invoice: ${grn.invoiceNumber || 'N/A'}</p>
+            </div>
+            
+            ${supplierSections}
+            
+            <div class="summary">
+                <h3 style="text-align: right; margin: 0;">
+                    GRAND TOTAL: ${formatCurrency(grn.total)}
+                </h3>
+                ${grn.notes ? `<p><strong>Notes:</strong> ${grn.notes}</p>` : ''}
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #000;">
+                <table style="width: 100%; border: none;">
+                    <tr>
+                        <td style="border: none; padding: 10px 0;">
+                            <strong>Received By:</strong><br><br>
+                            _________________________<br>
+                            Name & Signature
+                        </td>
+                        <td style="border: none; padding: 10px 0;">
+                            <strong>Checked By:</strong><br><br>
+                            _________________________<br>
+                            Name & Signature
+                        </td>
+                        <td style="border: none; padding: 10px 0;">
+                            <strong>Approved By:</strong><br><br>
+                            _________________________<br>
+                            Name & Signature
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="no-print" style="margin-top: 20px; text-align: center;">
+                <button onclick="window.print()" style="padding: 10px 20px; background: #059669; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    Print this GRN
+                </button>
+                <button onclick="window.close()" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                    Close
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    pw.document.close();
 }
     </script>
 </body>
