@@ -1295,6 +1295,10 @@ async function deleteIngredient(id) {
 // GRN
 // ─────────────────────────────────────────────
 function openGRNManual() {
+  _editingGRNId = null;
+  document.querySelector('#m-grn .modal-title').textContent = 'New GRN';
+  const saveBtn = document.querySelector('#m-grn button[onclick="updateGRN()"]');
+  if (saveBtn) { saveBtn.setAttribute('onclick','saveGRN()'); saveBtn.innerHTML = '<i class="fas fa-save"></i> Save GRN'; }
   document.getElementById('grn-date').value     = bizDayToday();
   document.getElementById('grn-supplier').value = '';
   document.getElementById('grn-invoice').value  = '';
@@ -1443,43 +1447,67 @@ function renderGRN() {
 
   const cont = document.getElementById('grn-list');
   if (!list.length) {
-    cont.innerHTML = `<div class="empty"><i class="fas fa-truck"></i><p>No GRN records found</p></div>`;
+    cont.innerHTML = '<div class="empty"><i class="fas fa-truck"></i><p>No GRN records found</p></div>';
     return;
   }
+
   cont.innerHTML = list.map(grn => {
     const items = DB.grnItems.filter(i=>i.grn_id===grn.id);
-    return `<div class="grn-card">
-      <div class="grn-card-head">
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-            <span class="day-badge"><i class="fas fa-truck"></i>${fmtDate(grn.bizday)}</span>
-            <span class="badge badge-ok">${items.length} items</span>
-          </div>
-          <div style="font-weight:700;font-size:15px;">${grn.supplier}</div>
-          ${grn.invoiceno ? `<div style="font-size:12px;color:var(--mid);">Invoice: ${grn.invoiceno}</div>` : ''}
-        </div>
-        <div style="text-align:right;">
-          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--success);">${fmtCurrency(grn.grandtotal)}</div>
-          <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end;">
-            <button class="btn btn-sm btn-outline" onclick="deleteGRN('${grn.id}')"><i class="fas fa-trash"></i></button>
-          </div>
-        </div>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>
-          <tbody>
-            ${items.map(i=>`<tr>
-              <td style="font-weight:600;">${i.itemname}</td>
-              <td><span class="unit-pill">${fmtNum(i.qty,3)} ${i.unit}</span></td>
-              <td>${fmtCurrency(i.unitcost)}</td>
-              <td style="font-weight:700;">${fmtCurrency(i.linetotal)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      ${grn.notes ? `<div style="margin-top:10px;padding:10px;background:#fffbeb;border-radius:8px;font-size:12px;">${grn.notes}</div>` : ''}
-    </div>`;
+
+    // Group items by itemSupplier (falls back to grn.supplier)
+    const supGroups = {};
+    items.forEach(i => {
+      const s = (i.itemsupplier && i.itemsupplier.trim()) ? i.itemsupplier : grn.supplier;
+      if (!supGroups[s]) supGroups[s] = [];
+      supGroups[s].push(i);
+    });
+    const multiSupplier = Object.keys(supGroups).length > 1;
+
+    const tableRows = multiSupplier
+      ? Object.entries(supGroups).map(([sup, sitems]) => {
+          const subTotal = sitems.reduce((s,i)=>s+safe(i.linetotal),0);
+          return '<tr style="background:#f0fdf4;"><td colspan="4" style="font-weight:700;color:#059669;padding:8px 12px;font-size:12px;">&#127978; ' + sup + '</td></tr>' +
+            sitems.map(i =>
+              '<tr><td style="font-weight:600;padding-left:20px;">' + i.itemname + '</td>' +
+              '<td><span class="unit-pill">' + fmtNum(i.qty,3) + ' ' + i.unit + '</span></td>' +
+              '<td>' + fmtCurrency(i.unitcost) + '</td>' +
+              '<td style="font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
+            ).join('') +
+            '<tr style="background:#f8f9fb;"><td colspan="3" style="text-align:right;font-size:11px;color:var(--mid);padding:6px 12px;">' + sup + ' subtotal</td><td style="font-weight:700;font-size:12px;">' + fmtCurrency(subTotal) + '</td></tr>';
+        }).join('')
+      : items.map(i =>
+          '<tr><td style="font-weight:600;">' + i.itemname + '</td>' +
+          '<td><span class="unit-pill">' + fmtNum(i.qty,3) + ' ' + i.unit + '</span></td>' +
+          '<td>' + fmtCurrency(i.unitcost) + '</td>' +
+          '<td style="font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
+        ).join('');
+
+    return '<div class="grn-card">' +
+      '<div class="grn-card-head">' +
+        '<div>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">' +
+            '<span class="day-badge"><i class="fas fa-truck"></i>' + fmtDate(grn.bizday) + '</span>' +
+            '<span class="badge badge-ok">' + items.length + ' items</span>' +
+            (multiSupplier ? '<span class="badge badge-info">' + Object.keys(supGroups).length + ' suppliers</span>' : '') +
+          '</div>' +
+          '<div style="font-weight:700;font-size:15px;">' + grn.supplier + '</div>' +
+          (grn.invoiceno ? '<div style="font-size:12px;color:var(--mid);">Invoice: ' + grn.invoiceno + '</div>' : '') +
+        '</div>' +
+        '<div style="text-align:right;">' +
+          '<div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--success);">' + fmtCurrency(grn.grandtotal) + '</div>' +
+          '<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">' +
+            '<button class="btn btn-sm btn-outline" title="Print" onclick="printGRN('' + grn.id + '')"><i class="fas fa-print"></i> Print</button>' +
+            '<button class="btn btn-sm" style="background:#dbeafe;color:#1e40af;" title="Edit" onclick="editGRN('' + grn.id + '')"><i class="fas fa-edit"></i> Edit</button>' +
+            '<button class="btn btn-sm btn-danger" title="Delete" onclick="deleteGRN('' + grn.id + '')"><i class="fas fa-trash"></i></button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="tbl-wrap">' +
+        '<table><thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
+        '<tbody>' + tableRows + '</tbody></table>' +
+      '</div>' +
+      (grn.notes ? '<div style="margin-top:10px;padding:10px;background:#fffbeb;border-radius:8px;font-size:12px;">' + grn.notes + '</div>' : '') +
+    '</div>';
   }).join('');
 }
 
@@ -1488,7 +1516,6 @@ async function deleteGRN(id) {
   const grn   = DB.grn.find(g=>g.id===id);
   const items = DB.grnItems.filter(i=>i.grn_id===id);
 
-  // Revert stock
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingredient_id);
     if (ing) {
@@ -1498,12 +1525,228 @@ async function deleteGRN(id) {
   }
   await sb.from('grn').delete().eq('id',id);
 
-  DB.grn       = DB.grn.filter(g=>g.id!==id);
-  DB.grnItems  = DB.grnItems.filter(i=>i.grn_id!==id);
+  DB.grn      = DB.grn.filter(g=>g.id!==id);
+  DB.grnItems = DB.grnItems.filter(i=>i.grn_id!==id);
   renderGRN();
   renderIngredients();
   renderDashboard();
   toast('GRN deleted');
+}
+
+// ── PRINT GRN ──
+function printGRN(id) {
+  const grn   = DB.grn.find(g=>g.id===id);
+  if (!grn) return;
+  const items = DB.grnItems.filter(i=>i.grn_id===id);
+
+  // Group by supplier
+  const supGroups = {};
+  items.forEach(i => {
+    const s = (i.itemsupplier && i.itemsupplier.trim()) ? i.itemsupplier : grn.supplier;
+    if (!supGroups[s]) supGroups[s] = [];
+    supGroups[s].push(i);
+  });
+
+  const supplierSections = Object.entries(supGroups).map(([sup, sitems]) => {
+    const subTotal = sitems.reduce((s,i)=>s+safe(i.linetotal),0);
+    return '<div class="sup-section">' +
+      '<div class="sup-header">&#127978; ' + sup + '</div>' +
+      '<table>' +
+        '<thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
+        '<tbody>' +
+          sitems.map(i =>
+            '<tr><td>' + i.itemname + '</td>' +
+            '<td style="text-align:center;">' + fmtNum(i.qty,3) + '</td>' +
+            '<td style="text-align:center;">' + i.unit + '</td>' +
+            '<td style="text-align:right;">' + fmtCurrency(i.unitcost) + '</td>' +
+            '<td style="text-align:right;font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
+          ).join('') +
+        '</tbody>' +
+        '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:700;padding-top:6px;">Subtotal</td>' +
+        '<td style="text-align:right;font-weight:700;padding-top:6px;">' + fmtCurrency(subTotal) + '</td></tr></tfoot>' +
+      '</table>' +
+    '</div>';
+  }).join('');
+
+  const pw = window.open('', '_blank');
+  pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<title>GRN ' + grn.bizday + '</title>' +
+    '<style>' +
+      'body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:13px;}' +
+      'h1{font-size:22px;margin:0 0 4px;}' +
+      'h2{font-size:14px;font-weight:400;color:#555;margin:0 0 20px;}' +
+      '.meta{display:flex;gap:40px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #111;}' +
+      '.meta-item label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;display:block;}' +
+      '.meta-item strong{font-size:14px;}' +
+      '.sup-section{margin-bottom:24px;}' +
+      '.sup-header{background:#f37021;color:#fff;padding:8px 12px;font-weight:700;font-size:13px;border-radius:4px 4px 0 0;}' +
+      'table{width:100%;border-collapse:collapse;font-size:12px;}' +
+      'th{background:#f8f8f8;padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}' +
+      'td{padding:7px 10px;border-bottom:1px solid #eee;}' +
+      'tfoot td{border-top:2px solid #ddd;border-bottom:none;background:#f8f8f8;}' +
+      '.grand-total{margin-top:16px;padding:14px 16px;background:#f0fdf4;border:2px solid #059669;border-radius:6px;display:flex;justify-content:space-between;align-items:center;}' +
+      '.grand-total span{font-size:20px;font-weight:900;color:#059669;}' +
+      '.signatures{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;margin-top:40px;padding-top:20px;border-top:2px solid #ddd;}' +
+      '.sig-box{text-align:center;}' +
+      '.sig-line{border-top:1px solid #111;margin-bottom:6px;margin-top:40px;}' +
+      '.sig-label{font-size:11px;color:#555;}' +
+      '@media print{body{padding:14px;}.no-print{display:none;}}' +
+    '</style></head><body>' +
+    '<h1>GOODS RECEIPT NOTE</h1>' +
+    '<h2>GRN &mdash; ' + grn.bizday + '</h2>' +
+    '<div class="meta">' +
+      '<div class="meta-item"><label>Date</label><strong>' + fmtDate(grn.bizday) + '</strong></div>' +
+      '<div class="meta-item"><label>Main Supplier</label><strong>' + grn.supplier + '</strong></div>' +
+      (grn.invoiceno ? '<div class="meta-item"><label>Invoice #</label><strong>' + grn.invoiceno + '</strong></div>' : '') +
+      '<div class="meta-item"><label>Items</label><strong>' + items.length + '</strong></div>' +
+    '</div>' +
+    supplierSections +
+    '<div class="grand-total"><strong>GRAND TOTAL</strong><span>' + fmtCurrency(grn.grandtotal) + '</span></div>' +
+    (grn.notes ? '<p style="margin-top:14px;padding:10px;background:#fffbeb;border-radius:4px;font-size:12px;"><strong>Notes:</strong> ' + grn.notes + '</p>' : '') +
+    '<div class="signatures">' +
+      '<div class="sig-box"><div class="sig-line"></div><div class="sig-label">Received By</div></div>' +
+      '<div class="sig-box"><div class="sig-line"></div><div class="sig-label">Checked By</div></div>' +
+      '<div class="sig-box"><div class="sig-line"></div><div class="sig-label">Approved By</div></div>' +
+    '</div>' +
+    '<div class="no-print" style="margin-top:24px;text-align:center;">' +
+      '<button onclick="window.print()" style="padding:10px 24px;background:#f37021;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">Print / Save as PDF</button>' +
+    '</div>' +
+  '</body></html>');
+  pw.document.close();
+}
+
+// ── EDIT GRN ──
+let _editingGRNId = null;
+
+function editGRN(id) {
+  const grn   = DB.grn.find(g=>g.id===id);
+  if (!grn) return;
+  const items = DB.grnItems.filter(i=>i.grn_id===id);
+
+  _editingGRNId = id;
+
+  // Populate form fields
+  document.getElementById('grn-date').value     = grn.bizday;
+  document.getElementById('grn-supplier').value = grn.supplier;
+  document.getElementById('grn-invoice').value  = grn.invoiceno || '';
+  document.getElementById('grn-notes').value    = grn.notes    || '';
+
+  // Change modal title
+  document.querySelector('#m-grn .modal-title').textContent = 'Edit GRN';
+
+  // Populate rows
+  const rowsDiv = document.getElementById('grn-rows');
+  rowsDiv.innerHTML = '';
+  items.forEach(item => {
+    const opts = DB.ingredients.map(i =>
+      '<option value="' + i.id + '" data-unit="' + i.unit + '" data-cost="' + i.costperunit + '"' +
+      (i.id === item.ingredient_id ? ' selected' : '') + '>' + i.name + ' (' + i.unit + ')</option>'
+    ).join('');
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
+    row.innerHTML =
+      '<select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;">' +
+        '<option value="">Select ingredient</option>' + opts +
+      '</select>' +
+      '<input class="form-input grn-qty" type="number" step="0.001" value="' + item.qty + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
+      '<input class="form-input grn-ucost" type="number" step="0.01" value="' + item.unitcost + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
+      '<div class="grn-line" style="font-weight:700;font-size:13px;text-align:right;padding-right:4px;">' + fmtCurrency(item.linetotal) + '</div>' +
+      '<button class="btn btn-icon" style="background:#fee2e2;color:#991b1b;flex-shrink:0;" onclick="removeGRNRow(this)"><i class="fas fa-trash"></i></button>';
+    rowsDiv.appendChild(row);
+  });
+
+  updateGRNGrandTotal();
+
+  // Change save button to update
+  const saveBtn = document.querySelector('#m-grn button[onclick="saveGRN()"]');
+  saveBtn.setAttribute('onclick', 'updateGRN()');
+  saveBtn.innerHTML = '<i class="fas fa-save"></i> Update GRN';
+
+  openM('m-grn');
+}
+
+async function updateGRN() {
+  const id      = _editingGRNId;
+  const bizday  = document.getElementById('grn-date').value;
+  const supplier= document.getElementById('grn-supplier').value.trim();
+  if (!bizday || !supplier) { toast('Date and supplier required','err'); return; }
+
+  const grn   = DB.grn.find(g=>g.id===id);
+  const oldItems = DB.grnItems.filter(i=>i.grn_id===id);
+
+  // Build new items from form rows
+  const rows = document.querySelectorAll('#grn-rows > div');
+  const newItems = [];
+  for (const row of rows) {
+    const ingId = row.querySelector('.grn-sel').value;
+    const qty   = safe(row.querySelector('.grn-qty').value);
+    const ucost = safe(row.querySelector('.grn-ucost').value);
+    if (!ingId || qty <= 0) continue;
+    const ing = DB.ingredients.find(i=>i.id===ingId);
+    if (!ing) continue;
+    newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name });
+  }
+  if (!newItems.length) { toast('Add at least one item','err'); return; }
+
+  setSyncStatus('busy','Updating GRN...');
+
+  // Revert old stock
+  for (const item of oldItems) {
+    const ing = DB.ingredients.find(i=>i.id===item.ingredient_id);
+    if (ing) {
+      ing.currentstock = Math.max(0, safe(ing.currentstock) - safe(item.qty));
+      await sb.from('ingredients').update({ currentstock: ing.currentstock, updatedat: new Date().toISOString() }).eq('id', ing.id);
+    }
+  }
+
+  // Delete old items
+  await sb.from('grn_items').delete().eq('grn_id', id);
+
+  // Update GRN header
+  const grandTotal = newItems.reduce((s,i)=>s+i.qty*i.ucost,0);
+  await sb.from('grn').update({
+    bizday, supplier,
+    invoiceno: document.getElementById('grn-invoice').value.trim(),
+    grandtotal: grandTotal,
+    notes: document.getElementById('grn-notes').value.trim()
+  }).eq('id', id);
+
+  // Insert new items
+  const itemRows = newItems.map(i=>({
+    id: uid(), grn_id: id, ingredient_id: i.ingId,
+    itemname: i.name, qty: i.qty, unit: i.unit,
+    unitcost: i.ucost, linetotal: i.qty*i.ucost
+  }));
+  await sb.from('grn_items').insert(itemRows);
+
+  // Apply new stock
+  for (const item of newItems) {
+    const ing = DB.ingredients.find(i=>i.id===item.ingId);
+    if (ing) {
+      ing.currentstock = safe(ing.currentstock) + item.qty;
+      await sb.from('ingredients').update({ currentstock: ing.currentstock, updatedat: new Date().toISOString() }).eq('id', ing.id);
+    }
+  }
+
+  // Update local DB
+  const grnIdx = DB.grn.findIndex(g=>g.id===id);
+  if (grnIdx>=0) DB.grn[grnIdx] = Object.assign(DB.grn[grnIdx], { bizday, supplier, grandtotal: grandTotal });
+  DB.grnItems = DB.grnItems.filter(i=>i.grn_id!==id);
+  DB.grnItems.push(...itemRows);
+
+  // Reset modal
+  _editingGRNId = null;
+  document.querySelector('#m-grn .modal-title').textContent = 'New GRN';
+  const saveBtn = document.querySelector('#m-grn button[onclick="updateGRN()"]');
+  if (saveBtn) { saveBtn.setAttribute('onclick','saveGRN()'); saveBtn.innerHTML = '<i class="fas fa-save"></i> Save GRN'; }
+
+  closeM('m-grn');
+  renderGRN();
+  renderIngredients();
+  renderDashboard();
+  setSyncStatus('ok','Synced');
+  toast('GRN updated successfully');
 }
 
 // UPLOAD GRN EXCEL
