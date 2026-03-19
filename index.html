@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2078,33 +2079,34 @@
         // ==========================================
 
         async function saveIngredientToSupabase(ingredient) {
-            if (!supabaseClient) return false;
-            
-            try {
-                const { error } = await supabaseClient
-                    .from('ingredients')
-                    .upsert({
-                        id: ingredient.id,
-                        name: ingredient.name,
-                        category: ingredient.category,
-                        unit: ingredient.unit,
-                        current_stock: ingredient.currentStock,
-                        opening_stock: ingredient.openingStock,
-                        opening_stock_date: ingredient.openingStockDate,
-                        min_level: ingredient.minLevel,
-                        cost_per_unit: ingredient.costPerUnit,
-                        supplier: ingredient.supplier,
-                        location: ingredient.location,
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'id' });
-                
-                if (error) throw error;
-                return true;
-            } catch (error) {
-                console.error('Error saving ingredient:', error);
-                return false;
-            }
-        }
+    if (!supabaseClient) return false;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('ingredients')
+            .upsert({
+                id: ingredient.id,
+                name: ingredient.name,
+                category: ingredient.category,
+                unit: ingredient.unit,
+                // Changed to snake_case to match SQL schema
+                currentstock: ingredient.current_stock,
+                openingstock: ingredient.openingstock,
+                openingstockdate: ingredient.openingstockdate,
+                minlevel: ingredient.min_level,
+                costperunit: ingredient.cost_per_unit,
+                supplier: ingredient.supplier,
+                location: ingredient.location,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+        
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('Error saving ingredient:', error);
+        return false;
+    }
+}
 
         async function deleteIngredientFromSupabase(id) {
             if (!supabaseClient) return false;
@@ -2758,47 +2760,33 @@ if (hour < 4) {
                 });
             }
             
-            tbody.innerHTML = filtered.map(ing => {
-                const status = getStockStatus(ing);
-                const value = ing.currentStock * ing.costPerUnit;
-                const percentage = ing.minLevel > 0 ? (ing.currentStock / ing.minLevel) * 100 : 100;
-                
-                return `
-                    <tr>
-                        <td>
-                            <div style="font-weight: 800; font-size: 13px;">${ing.name}</div>
-                            <div style="font-size: 11px; color: var(--gray);">${ing.supplier || 'No supplier'}</div>
-                        </td>
-                        <td><span class="badge badge-info">${getCategoryLabel(ing.category)}</span></td>
-                        <td>
-                            <div class="stock-control">
-                                <button class="stock-btn minus" onclick="adjustStock('${ing.id}', -1)">-</button>
-                                <span class="stock-value ${status.level !== 'normal' ? 'low' : ''}">${ing.currentStock.toFixed(2)}</span>
-                                <button class="stock-btn plus" onclick="adjustStock('${ing.id}', 1)">+</button>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill ${percentage > 100 ? 'high' : percentage > 50 ? 'medium' : 'low'}" style="width: ${Math.min(percentage, 100)}%"></div>
-                            </div>
-                        </td>
-                        <td>${ing.minLevel}</td>
-                        <td><span class="unit-badge">${ing.unit}</span></td>
-                        <td class="cost-display">${formatCurrency(ing.costPerUnit)}</td>
-                        <td class="cost-display">${formatCurrency(value)}</td>
-                        <td><span class="badge ${status.class}">${status.label}</span></td>
-                        <td>
-                            <div class="action-btns">
-                                <button class="action-btn edit" onclick="editIngredient('${ing.id}')" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="action-btn delete" onclick="deleteIngredient('${ing.id}')" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
+           tbody.innerHTML = filtered.map(ing => {
+        const status = getStockStatus(ing);
+        const value = (ing.current_stock || 0) * (ing.cost_per_unit || 0);  // ← changed
+        const percentage = ing.min_level > 0 ? ((ing.current_stock || 0) / ing.min_level) * 100 : 100;  // ← changed
+        
+        return `
+            <tr>
+                <!-- ... other columns ... -->
+                <td>
+                    <div class="stock-control">
+                        <button class="stock-btn minus" onclick="adjustStock('${ing.id}', -1)">-</button>
+                        <span class="stock-value ${status.level !== 'normal' ? 'low' : ''}">
+                            ${(ing.current_stock || 0).toFixed(2)}  <!-- ← changed from ing.currentStock -->
+                        </span>
+                        <button class="stock-btn plus" onclick="adjustStock('${ing.id}', 1)">+</button>
+                    </div>
+                    <!-- ... rest ... -->
+                </td>
+                <td>${(ing.min_level || 0).toFixed(2)}</td>  <!-- ← changed from ing.minLevel -->
+                <!-- ... -->
+                <td class="cost-display">${formatCurrency(ing.cost_per_unit || 0)}</td>  <!-- ← changed -->
+                <td class="cost-display">${formatCurrency(value)}</td>
+                <!-- ... -->
+            </tr>
+        `;
+    }).join('');
+}
 
         function filterIngredients() {
             renderIngredients();
@@ -4555,74 +4543,91 @@ if (hour < 4) {
         }
 
         function processExcelData(workbook) {
-            const result = {
-                ingredients: [],
-                recipes: []
-            };
+    const result = {
+        ingredients: [],
+        recipes: []
+    };
+    
+    console.log('Processing workbook, sheets:', workbook.SheetNames);
+    
+    // Helper to safely parse numbers
+    const parseNum = (val, defaultVal = 0) => {
+        if (val === undefined || val === null || val === '') return defaultVal;
+        const parsed = parseFloat(val);
+        return isNaN(parsed) ? defaultVal : parsed;
+    };
+    
+    // Helper to get string value safely
+    const getStr = (val, defaultVal = '') => {
+        if (val === undefined || val === null) return defaultVal;
+        return val.toString().trim();
+    };
+    
+    // Process Ingredients sheet
+    if (workbook.SheetNames.includes('Ingredients')) {
+        const sheet = workbook.Sheets['Ingredients'];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        console.log('Ingredients data:', jsonData);
+        
+        result.ingredients = jsonData.map((row) => ({
+            id: generateId(),
+            name: getStr(row['Name']),
+            category: getStr(row['Category'], 'general').toLowerCase(),
+            unit: getStr(row['Unit'], 'pcs').toLowerCase(),
+            // Use snake_case to match Supabase columns
+            current_stock: parseNum(row['Current Stock']),
+            min_level: parseNum(row['Min Level']),
+            cost_per_unit: parseNum(row['Cost Per Unit']),
+            supplier: getStr(row['Supplier']),
+            location: getStr(row['Location']),
+            // Initialize opening stock same as current
+            openingstock: parseNum(row['Current Stock']),
+            openingstockdate: new Date().toISOString().slice(0, 10)
+        })).filter(ing => ing.name);
+    }
+    
+    // Process Recipes sheet
+    if (workbook.SheetNames.includes('Recipes')) {
+        const sheet = workbook.Sheets['Recipes'];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        console.log('Recipes data:', jsonData);
+        
+        // Group by recipe name
+        const recipeGroups = {};
+        jsonData.forEach((row) => {
+            const recipeName = getStr(row['Recipe Name'] || row['Recipe'] || row['name']);
+            if (!recipeName) return;
             
-            console.log('Processing workbook, sheets:', workbook.SheetNames);
-            
-            // Process Ingredients sheet
-            if (workbook.SheetNames.includes('Ingredients')) {
-                const sheet = workbook.Sheets['Ingredients'];
-                const jsonData = XLSX.utils.sheet_to_json(sheet);
-                console.log('Ingredients data:', jsonData);
-                
-                result.ingredients = jsonData.map((row) => ({
+            if (!recipeGroups[recipeName]) {
+                recipeGroups[recipeName] = {
                     id: generateId(),
-                    name: row['Name'] || row['Ingredient'] || row['name'] || '',
-                    category: (row['Category'] || row['category'] || 'general').toString().toLowerCase(),
-                    unit: (row['Unit'] || row['unit'] || 'pcs').toString().toLowerCase(),
-                    currentStock: parseFloat(row['Current Stock'] || row['Stock'] || row['currentStock'] || 0) || 0,
-                    minLevel: parseFloat(row['Min Level'] || row['Minimum'] || row['minLevel'] || 0) || 0,
-                    costPerUnit: parseFloat(row['Cost Per Unit'] || row['Cost'] || row['costPerUnit'] || 0) || 0,
-                    supplier: row['Supplier'] || row['supplier'] || '',
-                    location: row['Location'] || row['location'] || ''
-                })).filter(ing => ing.name);
+                    name: recipeName,
+                    category: getStr(row['Category'], 'general').toLowerCase(),
+                    selling_price: parseNum(row['Selling Price'] || row['Price']),
+                    ingredients: []
+                };
             }
             
-            // Process Recipes sheet
-            if (workbook.SheetNames.includes('Recipes')) {
-                const sheet = workbook.Sheets['Recipes'];
-                const jsonData = XLSX.utils.sheet_to_json(sheet);
-                console.log('Recipes data:', jsonData);
+            const ingName = getStr(row['Ingredient Name'] || row['Ingredient'] || row['ingredient']);
+            if (ingName) {
+                const existingIng = result.ingredients.find(i => 
+                    i.name.toLowerCase() === ingName.toLowerCase()
+                );
                 
-                // Group by recipe name
-                const recipeGroups = {};
-                jsonData.forEach((row) => {
-                    const recipeName = row['Recipe Name'] || row['Recipe'] || row['name'] || '';
-                    if (!recipeName) return;
-                    
-                    if (!recipeGroups[recipeName]) {
-                        recipeGroups[recipeName] = {
-                            id: generateId(),
-                            name: recipeName,
-                            category: (row['Category'] || row['category'] || 'general').toString().toLowerCase(),
-                            sellingPrice: parseFloat(row['Selling Price'] || row['Price'] || row['sellingPrice'] || 0) || 0,
-                            ingredients: []
-                        };
-                    }
-                    
-                    const ingName = row['Ingredient Name'] || row['Ingredient'] || row['ingredient'] || '';
-                    if (ingName) {
-                        const existingIng = result.ingredients.find(i => 
-                            i.name.toLowerCase().trim() === ingName.toString().toLowerCase().trim()
-                        );
-                        
-                        recipeGroups[recipeName].ingredients.push({
-                            ingredientId: existingIng ? existingIng.id : null,
-                            name: ingName,
-                            qty: parseFloat(row['Quantity'] || row['Qty'] || row['quantity'] || row['qty'] || 0) || 0,
-                            unit: (row['Unit'] || row['unit'] || 'pcs').toString().toLowerCase()
-                        });
-                    }
+                recipeGroups[recipeName].ingredients.push({
+                    ingredient_id: existingIng ? existingIng.id : null,
+                    name: ingName,
+                    quantity: parseNum(row['Quantity'] || row['Qty']),
+                    unit: getStr(row['Unit'], 'pcs').toLowerCase()
                 });
-                
-                result.recipes = Object.values(recipeGroups);
             }
-            
-            return result;
-        }
+        });
+        
+        result.recipes = Object.values(recipeGroups);
+    }
+    
+    return result;
+}
 
         function showUploadPreview(result) {
             const previewDiv = document.getElementById('upload-preview');
