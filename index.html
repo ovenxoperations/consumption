@@ -1821,10 +1821,14 @@
         }
 
         function getStockStatus(ingredient) {
-            if (ingredient.currentStock <= 0) return { label: 'Stock Out', class: 'badge-danger', level: 'out' };
-            if (ingredient.currentStock <= ingredient.minLevel) return { label: 'Low Stock', class: 'badge-warning', level: 'low' };
-            return { label: 'Normal', class: 'badge-success', level: 'normal' };
-        }
+    // Use current_stock instead of currentStock
+    const currentStock = parseFloat(ingredient.current_stock) || 0;
+    const minLevel = parseFloat(ingredient.min_level) || 0;
+    
+    if (currentStock <= 0) return { label: 'Stock Out', class: 'badge-danger', level: 'out' };
+    if (currentStock <= minLevel) return { label: 'Low Stock', class: 'badge-warning', level: 'low' };
+    return { label: 'Normal', class: 'badge-success', level: 'normal' };
+}
 
         // ==========================================
         // NOTIFICATION SYSTEM
@@ -2738,51 +2742,86 @@ if (hour < 4) {
         }
 
         function renderIngredients() {
-            const tbody = document.getElementById('ingredients-table-body');
-            const search = document.getElementById('ingredient-search')?.value.toLowerCase() || '';
-            const categoryFilter = document.getElementById('category-filter')?.value || '';
-            const statusFilter = document.getElementById('status-filter')?.value || '';
-            
-            if (!tbody) return;
-            
-            let filtered = inventoryData.ingredients;
-            
-            if (search) {
-                filtered = filtered.filter(i => i.name.toLowerCase().includes(search));
-            }
-            if (categoryFilter) {
-                filtered = filtered.filter(i => i.category === categoryFilter);
-            }
-            if (statusFilter) {
-                filtered = filtered.filter(i => {
-                    const status = getStockStatus(i);
-                    return status.level === statusFilter;
-                });
-            }
-            
-           tbody.innerHTML = filtered.map(ing => {
+    const tbody = document.getElementById('ingredients-table-body');
+    const search = document.getElementById('ingredient-search')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('category-filter')?.value || '';
+    const statusFilter = document.getElementById('status-filter')?.value || '';
+    
+    if (!tbody) return;
+    
+    let filtered = inventoryData.ingredients;
+    
+    if (search) {
+        filtered = filtered.filter(i => i.name.toLowerCase().includes(search));
+    }
+    if (categoryFilter) {
+        filtered = filtered.filter(i => i.category === categoryFilter);
+    }
+    if (statusFilter) {
+        filtered = filtered.filter(i => {
+            const status = getStockStatus(i);
+            return status.level === statusFilter;
+        });
+    }
+    
+    tbody.innerHTML = filtered.map(ing => {
         const status = getStockStatus(ing);
-        const value = (ing.current_stock || 0) * (ing.cost_per_unit || 0);  // ← changed
-        const percentage = ing.min_level > 0 ? ((ing.current_stock || 0) / ing.min_level) * 100 : 100;  // ← changed
+        // Use current_stock (snake_case from your updated data structure)
+        const currentStock = parseFloat(ing.current_stock) || 0;
+        const minLevel = parseFloat(ing.min_level) || 0;
+        const costPerUnit = parseFloat(ing.cost_per_unit) || 0;
+        const value = currentStock * costPerUnit;
+        const percentage = minLevel > 0 ? (currentStock / minLevel) * 100 : 100;
         
         return `
             <tr>
-                <!-- ... other columns ... -->
+                <!-- 1. INGREDIENT -->
+                <td>
+                    <div style="font-weight: 800; font-size: 13px;">${ing.name || 'Unknown'}</div>
+                    <div style="font-size: 11px; color: var(--gray);">${ing.supplier || 'No supplier'}</div>
+                </td>
+                
+                <!-- 2. CATEGORY -->
+                <td><span class="badge badge-info">${getCategoryLabel(ing.category)}</span></td>
+                
+                <!-- 3. STOCK LEVEL -->
                 <td>
                     <div class="stock-control">
                         <button class="stock-btn minus" onclick="adjustStock('${ing.id}', -1)">-</button>
-                        <span class="stock-value ${status.level !== 'normal' ? 'low' : ''}">
-                            ${(ing.current_stock || 0).toFixed(2)}  <!-- ← changed from ing.currentStock -->
-                        </span>
+                        <span class="stock-value ${status.level !== 'normal' ? 'low' : ''}">${currentStock.toFixed(2)}</span>
                         <button class="stock-btn plus" onclick="adjustStock('${ing.id}', 1)">+</button>
                     </div>
-                    <!-- ... rest ... -->
+                    <div class="progress-bar">
+                        <div class="progress-fill ${percentage > 100 ? 'high' : percentage > 50 ? 'medium' : 'low'}" style="width: ${Math.min(percentage, 100)}%"></div>
+                    </div>
                 </td>
-                <td>${(ing.min_level || 0).toFixed(2)}</td>  <!-- ← changed from ing.minLevel -->
-                <!-- ... -->
-                <td class="cost-display">${formatCurrency(ing.cost_per_unit || 0)}</td>  <!-- ← changed -->
+                
+                <!-- 4. MIN LEVEL -->
+                <td>${minLevel.toFixed(2)}</td>
+                
+                <!-- 5. UNIT -->
+                <td><span class="unit-badge">${ing.unit || 'pcs'}</span></td>
+                
+                <!-- 6. COST/UNIT -->
+                <td class="cost-display">${formatCurrency(costPerUnit)}</td>
+                
+                <!-- 7. VALUE -->
                 <td class="cost-display">${formatCurrency(value)}</td>
-                <!-- ... -->
+                
+                <!-- 8. STATUS -->
+                <td><span class="badge ${status.class}">${status.label}</span></td>
+                
+                <!-- 9. ACTIONS -->
+                <td>
+                    <div class="action-btns">
+                        <button class="action-btn edit" onclick="editIngredient('${ing.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete" onclick="deleteIngredient('${ing.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
             </tr>
         `;
     }).join('');
