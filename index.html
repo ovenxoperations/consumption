@@ -1409,13 +1409,16 @@ items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier });
   if (iErr) { toast('❌ '+iErr.message,'err'); return; }
 
   // Update stock
+  // Update stock + cost per unit from GRN
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
       ing.currentstock = safe(ing.currentstock) + item.qty;
+      if (item.ucost > 0) ing.costperunit = item.ucost;
       await sb.from('ingredients').update({
         currentstock: ing.currentstock,
-        updatedat: new Date().toISOString()
+        costperunit:  item.ucost > 0 ? item.ucost : ing.costperunit,
+        updatedat:    new Date().toISOString()
       }).eq('id', ing.id);
     }
   }
@@ -1718,11 +1721,17 @@ newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier 
   await sb.from('grn_items').insert(itemRows);
 
   // Apply new stock
+  // Apply new stock + cost per unit from GRN
   for (const item of newItems) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
       ing.currentstock = safe(ing.currentstock) + item.qty;
-      await sb.from('ingredients').update({ currentstock: ing.currentstock, updatedat: new Date().toISOString() }).eq('id', ing.id);
+      if (item.ucost > 0) ing.costperunit = item.ucost;
+      await sb.from('ingredients').update({
+        currentstock: ing.currentstock,
+        costperunit:  item.ucost > 0 ? item.ucost : ing.costperunit,
+        updatedat:    new Date().toISOString()
+      }).eq('id', ing.id);
     }
   }
 
@@ -2013,7 +2022,12 @@ async function commitUploadGRN() {
 
   for (const m of matched) {
     m.ing.currentstock = safe(m.ing.currentstock) + m.qty;
-    await sb.from('ingredients').update({ currentstock: m.ing.currentstock, updatedat: new Date().toISOString() }).eq('id',m.ing.id);
+    if (m.ucost > 0) m.ing.costperunit = m.ucost;
+    await sb.from('ingredients').update({
+      currentstock: m.ing.currentstock,
+      costperunit:  m.ucost > 0 ? m.ucost : m.ing.costperunit,
+      updatedat:    new Date().toISOString()
+    }).eq('id', m.ing.id);
   }
 
   DB.grn.unshift({ id:grnId, bizday, supplier, grandtotal:grandTotal, invoiceno:'', notes:'' });
