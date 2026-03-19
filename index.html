@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 :root {
@@ -35,7 +35,7 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 
 body{
-  font-family:'DM Sans',sans-serif;
+  font-family:'Inter',sans-serif;
   background:#f8f9fb;
   color:var(--dark);
   font-size:14px;
@@ -55,7 +55,7 @@ body{
   box-shadow:0 2px 16px rgba(0,0,0,.2);
 }
 .logo{
-  font-family:'Syne',sans-serif;
+  font-family:'Plus Jakarta Sans',sans-serif;
   font-size:22px;
   font-weight:800;
   color:#fff;
@@ -88,7 +88,7 @@ body{
 .nav-btn{
   padding:14px 18px;
   border:none;background:transparent;
-  font-family:'DM Sans',sans-serif;
+  font-family:'Inter',sans-serif;
   font-weight:600;font-size:13px;
   color:var(--mid);cursor:pointer;
   border-bottom:3px solid transparent;
@@ -107,7 +107,7 @@ body{
 /* ── BUTTONS ── */
 .btn{
   padding:9px 16px;border:none;border-radius:var(--radius-sm);
-  font-family:'DM Sans',sans-serif;
+  font-family:'Inter',sans-serif;
   font-weight:600;font-size:13px;cursor:pointer;
   display:inline-flex;align-items:center;gap:6px;
   transition:all .2s;white-space:nowrap;
@@ -128,7 +128,7 @@ body{
 /* ── CARDS ── */
 .card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);}
 .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
-.card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark);}
+.card-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--dark);}
 
 /* ── STATS ── */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
@@ -143,7 +143,7 @@ body{
 .stat.bad{border-left-color:var(--danger);}
 .stat.brand{border-left-color:var(--brand);}
 .stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mid);margin-bottom:6px;}
-.stat-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--dark);}
+.stat-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;color:var(--dark);}
 
 /* ── TABLES ── */
 .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
@@ -176,7 +176,7 @@ tr:hover td{background:#fafafa;}
 .form-input,.form-select,.form-textarea{
   width:100%;padding:9px 12px;
   border:2px solid var(--border);border-radius:var(--radius-sm);
-  font-family:'DM Sans',sans-serif;font-size:13px;
+  font-family:'Inter',sans-serif;font-size:13px;
   transition:border-color .2s;background:#fff;
 }
 .form-input:focus,.form-select:focus,.form-textarea:focus{
@@ -205,7 +205,7 @@ tr:hover td{background:#fafafa;}
   display:flex;justify-content:space-between;align-items:center;
   position:sticky;top:0;background:#fff;z-index:10;
 }
-.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;}
 .modal-close{
   background:none;border:none;font-size:22px;
   cursor:pointer;color:var(--mid);width:36px;height:36px;
@@ -336,7 +336,7 @@ tr:hover td{background:#fafafa;}
     <button class="btn btn-ghost btn-sm" onclick="openM('m-templates')">
       <i class="fas fa-download"></i> Templates
     </button>
-    <button class="btn btn-ghost btn-sm" onclick="openM('m-opening')">
+    <button class="btn btn-ghost btn-sm" onclick="openOpeningStock()">
       <i class="fas fa-box-open"></i> Opening Stock
     </button>
     <button class="btn btn-ghost btn-sm" onclick="openM('m-sql')">
@@ -359,6 +359,9 @@ tr:hover td{background:#fafafa;}
     </button>
     <button class="nav-btn" data-tab="t-closing" onclick="switchTab(this)">
       <i class="fas fa-moon"></i> Night Closing
+    </button>
+    <button class="nav-btn" data-tab="t-consumption" onclick="switchTab(this)">
+      <i class="fas fa-fire"></i> Consumption
     </button>
   </div>
 </nav>
@@ -556,6 +559,91 @@ tr:hover td{background:#fafafa;}
   </div>
 </div>
 
+<!-- ══════════════════════════════════════
+     CONSUMPTION REPORT
+══════════════════════════════════════ -->
+<div id="t-consumption" class="tab">
+
+  <!-- Summary stats -->
+  <div class="stats" id="cons-stats">
+    <div class="stat brand"><div class="stat-label">Total Days</div><div class="stat-val" id="cs-days">—</div></div>
+    <div class="stat bad"><div class="stat-label">Total Consumed Cost</div><div class="stat-val" id="cs-total">—</div></div>
+    <div class="stat warn"><div class="stat-label">Avg Daily Cost</div><div class="stat-val" id="cs-avg">—</div></div>
+    <div class="stat ok"><div class="stat-label">Top Item</div><div class="stat-val" id="cs-top" style="font-size:14px;padding-top:4px;">—</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="fas fa-fire" style="color:var(--brand);"></i> Consumption Report</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="exportConsumptionReport()"><i class="fas fa-file-excel"></i> Export</button>
+      </div>
+    </div>
+    <div class="filters">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--mid);display:block;margin-bottom:4px;">FROM</label>
+        <input class="form-input" type="date" id="cons-from" onchange="renderConsumption()" style="max-width:160px;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--mid);display:block;margin-bottom:4px;">TO</label>
+        <input class="form-input" type="date" id="cons-to" onchange="renderConsumption()" style="max-width:160px;">
+      </div>
+      <div style="display:flex;gap:6px;align-items:flex-end;">
+        <button class="btn btn-outline btn-sm" onclick="setConsRange(7)">Last 7 days</button>
+        <button class="btn btn-outline btn-sm" onclick="setConsRange(30)">Last 30 days</button>
+        <button class="btn btn-outline btn-sm" onclick="setConsRange(0)">All</button>
+      </div>
+      <!-- View toggle -->
+      <div style="display:flex;gap:6px;align-items:flex-end;margin-left:auto;">
+        <button class="btn btn-sm" id="cons-view-item" style="background:var(--brand);color:#fff;" onclick="switchConsView('item')">By Ingredient</button>
+        <button class="btn btn-outline btn-sm" id="cons-view-day" onclick="switchConsView('day')">By Day</button>
+      </div>
+    </div>
+
+    <!-- BY INGREDIENT view -->
+    <div id="cons-by-item">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ingredient</th>
+              <th>Category</th>
+              <th style="text-align:right;">Total Consumed</th>
+              <th>Unit</th>
+              <th style="text-align:right;">Avg Cost/Unit</th>
+              <th style="text-align:right;">Total Cost</th>
+              <th style="text-align:right;">% of Total</th>
+              <th>Days</th>
+            </tr>
+          </thead>
+          <tbody id="cons-item-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BY DAY view -->
+    <div id="cons-by-day" style="display:none;">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Business Day</th>
+              <th>Closed By</th>
+              <th style="text-align:right;">Items Consumed</th>
+              <th style="text-align:right;">Total Cost</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cons-day-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
 </main>
 
 <!-- ═══════════════════════════════════════════
@@ -670,15 +758,15 @@ tr:hover td{background:#fafafa;}
           <strong style="font-size:13px;">Items</strong>
           <button class="btn btn-outline btn-sm" onclick="addGRNRow()"><i class="fas fa-plus"></i> Add Row</button>
         </div>
-        <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;padding:8px;background:#f8f9fb;border-radius:8px;margin-bottom:8px;font-weight:700;font-size:11px;color:var(--mid);text-transform:uppercase;">
-  <div>Ingredient</div><div>Supplier</div><div>Qty</div><div>Unit Cost</div><div>Total</div><div></div>
-</div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;padding:8px;background:#f8f9fb;border-radius:8px;font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;">
+          <div>Ingredient</div><div>Qty</div><div>Unit Cost</div><div>Total</div><div></div>
+        </div>
         <div id="grn-rows" style="max-height:320px;overflow-y:auto;"></div>
       </div>
 
       <div style="background:#f0fdf4;border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center;border:2px solid #d1fae5;">
         <span style="font-size:13px;color:#059669;font-weight:600;">Grand Total</span>
-        <span id="grn-total" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#059669;">Rs 0.00</span>
+        <span id="grn-total" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#059669;">Rs 0.00</span>
       </div>
 
       <div class="form-group" style="margin-top:14px;">
@@ -760,12 +848,30 @@ tr:hover td{background:#fafafa;}
       </div>
       <div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;">
         <table>
-          <thead><tr><th>Ingredient</th><th>Unit</th><th style="text-align:right;">Opening Stock</th></tr></thead>
+          <thead><tr><th>Ingredient</th><th>Unit</th><th style="text-align:right;">Opening Stock</th><th style="text-align:right;">Min Level</th></tr></thead>
           <tbody id="op-tbody"></tbody>
         </table>
       </div>
-      <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="saveOpeningStock()">
-        <i class="fas fa-save"></i> Save Opening Stock
+      <div style="margin-top:14px;padding:14px;background:#fffbeb;border-radius:10px;border:2px solid #fde68a;">
+        <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:10px;">
+          <i class="fas fa-bell"></i> Bulk Set Min Levels (Alert Thresholds)
+        </div>
+        <p style="font-size:11px;color:var(--mid);margin-bottom:10px;">
+          Items with 0 min level will always show as "Stock Out". Set a realistic minimum so alerts are meaningful.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <select class="form-select" id="bulk-min-cat" style="max-width:180px;font-size:12px;">
+            <option value="">All Categories</option>
+          </select>
+          <input class="form-input" type="number" id="bulk-min-val" placeholder="Min level value" step="0.001" style="max-width:160px;font-size:12px;">
+          <button class="btn btn-sm" style="background:var(--warning);color:#fff;" onclick="applyBulkMinLevel()">
+            <i class="fas fa-bolt"></i> Apply to Category
+          </button>
+        </div>
+        <p style="font-size:11px;color:var(--mid);">Or edit min levels individually in the Opening Stock table above (add a Min Level column below).</p>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="saveOpeningStock()">
+        <i class="fas fa-save"></i> Save Opening Stock & Min Levels
       </button>
     </div>
   </div>
@@ -1030,6 +1136,7 @@ function switchTab(btn) {
   if (tab === 't-ingredients') { renderIngredients(); }
   if (tab === 't-grn')         { renderGRN(); }
   if (tab === 't-closing')     { renderClosingHistory(); }
+  if (tab === 't-consumption') { renderConsumption(); }
 }
 
 // ─────────────────────────────────────────────
@@ -1112,7 +1219,7 @@ function renderDashboard() {
           <div style="font-size:12px;color:var(--mid);">${catLabel(ing.category)} · Min: ${fmtNum(ing.minlevel)} ${ing.unit}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;">${fmtNum(ing.currentstock)} ${ing.unit}</div>
+          <div style="font-family:Plus Jakarta Sans,sans-serif;font-size:18px;font-weight:800;">${fmtNum(ing.currentstock)} ${ing.unit}</div>
           <span class="badge ${s.cls}">${s.label}</span>
         </div>
       </div>`;
@@ -1213,7 +1320,8 @@ function exportIngredients() {
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Ingredients');
-XLSX.writeFile(wb, `Ingredients_${new Date().toISOString().slice(0,10)}.xlsx`);}
+  blobDownload(wb, `Ingredients_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
 
 // ADD / EDIT INGREDIENT
 function openAddIngredient() {
@@ -1313,12 +1421,11 @@ function addGRNRow() {
     `<option value="${i.id}" data-unit="${i.unit}" data-cost="${i.costperunit}">${i.name} (${i.unit})</option>`
   ).join('');
   const row = document.createElement('div');
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
-row.innerHTML = `
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
+  row.innerHTML = `
     <select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;">
       <option value="">Select ingredient</option>${opts}
     </select>
-    <input class="form-input grn-item-supplier" type="text" placeholder="Supplier" style="font-size:12px;">
     <input class="form-input grn-qty" type="number" step="0.001" placeholder="0.000" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">
     <input class="form-input grn-ucost" type="number" step="0.01" placeholder="0.00" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">
     <div class="grn-line" style="font-weight:700;font-size:13px;text-align:right;padding-right:4px;">Rs 0.00</div>
@@ -1376,8 +1483,8 @@ async function saveGRN() {
     if (!ingId || qty <= 0) continue;
     const ing = DB.ingredients.find(i=>i.id===ingId);
     if (!ing) continue;
-const itemSupplier = row.querySelector('.grn-item-supplier')?.value.trim() || supplier;
-items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier });  }
+    items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name });
+  }
 
   if (!items.length) { toast('Add at least one item','err'); return; }
 
@@ -1400,25 +1507,26 @@ items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier });
 
   // Save items
   const itemRows = items.map(i=>({
-    id: uid(), grn_id: grnId, ingredient_id: i.ingId,
-    itemname: i.name, qty: i.qty, unit: i.unit,
-    unitcost: i.ucost, linetotal: i.qty*i.ucost,
-    itemsupplier: i.itemSupplier
+    id:            uid(),
+    grn_id:        grnId,
+    ingredient_id: i.ingId,
+    itemname:      i.name,
+    qty:           i.qty,
+    unit:          i.unit,
+    unitcost:      i.ucost,
+    linetotal:     i.qty * i.ucost
   }));
   const { error: iErr } = await sb.from('grn_items').insert(itemRows);
   if (iErr) { toast('❌ '+iErr.message,'err'); return; }
 
   // Update stock
-  // Update stock + cost per unit from GRN
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
       ing.currentstock = safe(ing.currentstock) + item.qty;
-      if (item.ucost > 0) ing.costperunit = item.ucost;
       await sb.from('ingredients').update({
         currentstock: ing.currentstock,
-        costperunit:  item.ucost > 0 ? item.ucost : ing.costperunit,
-        updatedat:    new Date().toISOString()
+        updatedat: new Date().toISOString()
       }).eq('id', ing.id);
     }
   }
@@ -1493,7 +1601,7 @@ function renderGRN() {
           (grn.invoiceno ? '<div style="font-size:12px;color:var(--mid);">Invoice: ' + grn.invoiceno + '</div>' : '') +
         '</div>' +
         '<div style="text-align:right;">' +
-          '<div style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:var(--success);">' + fmtCurrency(grn.grandtotal) + '</div>' +
+          '<div style="font-family:Plus Jakarta Sans,sans-serif;font-size:22px;font-weight:800;color:var(--success);">' + fmtCurrency(grn.grandtotal) + '</div>' +
           '<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">' +
             '<button class="btn btn-sm btn-outline" title="Print" onclick="printGRN(\'' + grn.id + '\')"><i class="fas fa-print"></i> Print</button>' +
             '<button class="btn btn-sm" style="background:#dbeafe;color:#1e40af;" title="Edit" onclick="editGRN(\'' + grn.id + '\')"><i class="fas fa-edit"></i> Edit</button>' +
@@ -1643,11 +1751,11 @@ function editGRN(id) {
     ).join('');
 
     const row = document.createElement('div');
-row.style.cssText = 'display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';    row.innerHTML =
+    row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
+    row.innerHTML =
       '<select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;">' +
         '<option value="">Select ingredient</option>' + opts +
       '</select>' +
-      '<input class="form-input grn-item-supplier" type="text" placeholder="Supplier" value="' + (item.itemsupplier||grn.supplier) + '" style="font-size:12px;">' +
       '<input class="form-input grn-qty" type="number" step="0.001" value="' + item.qty + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
       '<input class="form-input grn-ucost" type="number" step="0.01" value="' + item.unitcost + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
       '<div class="grn-line" style="font-weight:700;font-size:13px;text-align:right;padding-right:4px;">' + fmtCurrency(item.linetotal) + '</div>' +
@@ -1684,8 +1792,8 @@ async function updateGRN() {
     if (!ingId || qty <= 0) continue;
     const ing = DB.ingredients.find(i=>i.id===ingId);
     if (!ing) continue;
-    const itemSupplier = row.querySelector('.grn-item-supplier')?.value.trim() || supplier;
-newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier });  }
+    newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name });
+  }
   if (!newItems.length) { toast('Add at least one item','err'); return; }
 
   setSyncStatus('busy','Updating GRN...');
@@ -1716,12 +1824,11 @@ newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier 
     id: uid(), grn_id: id, ingredient_id: i.ingId,
     itemname: i.name, qty: i.qty, unit: i.unit,
     unitcost: i.ucost, linetotal: i.qty*i.ucost,
-    itemsupplier: i.itemSupplier
+    itemsupplier: i.itemSupplier || supplier
   }));
   await sb.from('grn_items').insert(itemRows);
 
-  // Apply new stock
-  // Apply new stock + cost per unit from GRN
+  // Apply new stock + cost per unit
   for (const item of newItems) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
@@ -2015,7 +2122,8 @@ async function commitUploadGRN() {
   const itemRows = matched.map(m=>({
     id: uid(), grn_id: grnId, ingredient_id: m.ing.id,
     itemname: m.ing.name, qty: m.qty, unit: m.ing.unit,
-    unitcost: m.ucost, linetotal: m.qty*m.ucost
+    unitcost: m.ucost, linetotal: m.qty*m.ucost,
+    itemsupplier: m.itemSupplier || supplier
   }));
   const { error: iErr } = await sb.from('grn_items').insert(itemRows);
   if (iErr) { toast('❌ '+iErr.message,'err'); return; }
@@ -2384,11 +2492,23 @@ function renderClosingHistory() {
           <td style="font-weight:700;">${fmtCurrency(c.totalcost)}</td>
           <td>
             <button class="btn btn-sm btn-outline" onclick="viewClosingDay('${c.bizday}')"><i class="fas fa-eye"></i> View</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteClosing('${c.id}')"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
       }).join('')}
     </tbody>
   </table></div>`;
+}
+
+async function deleteClosing(id) {
+  if (!confirm('Delete this closing? This cannot be undone.')) return;
+  const { error } = await sb.from('closing').delete().eq('id', id);
+  if (error) { toast('❌ ' + error.message, 'err'); return; }
+  DB.closing      = DB.closing.filter(c => c.id !== id);
+  DB.closingItems = DB.closingItems.filter(i => i.closing_id !== id);
+  renderClosingHistory();
+  renderDashboard();
+  toast('Closing record deleted');
 }
 
 function viewClosingDay(date) {
@@ -2424,6 +2544,7 @@ function openOpeningStock() {
   document.getElementById('op-date').value = bizDayToday();
   document.getElementById('op-search').value = '';
   populateOpeningTable();
+  populateBulkMinCat();
   openM('m-opening');
 }
 
@@ -2436,6 +2557,11 @@ function populateOpeningTable() {
       <td style="text-align:right;">
         <input class="closing-input" type="number" step="0.001" min="0"
                id="op_${ing.id}" value="${fmtNum(ing.openingstock,3)}">
+      </td>
+      <td style="text-align:right;">
+        <input class="closing-input" type="number" step="0.001" min="0"
+               id="opm_${ing.id}" value="${fmtNum(ing.minlevel,3)}"
+               style="background:${safe(ing.minlevel)===0?'#fffbeb':'#fff'};">
       </td>
     </tr>
   `).join('');
@@ -2452,24 +2578,60 @@ async function saveOpeningStock() {
   const date = document.getElementById('op-date').value || bizDayToday();
   setSyncStatus('busy','Saving opening stock…');
 
+  let saved = 0;
   for (const ing of DB.ingredients) {
-    const el = document.getElementById(`op_${ing.id}`);
-    if (!el) continue;
-    const val = safe(el.value);
+    const elStock = document.getElementById(`op_${ing.id}`);
+    const elMin   = document.getElementById(`opm_${ing.id}`);
+    if (!elStock) continue;
+
+    const val    = safe(elStock.value);
+    const minVal = elMin ? safe(elMin.value) : safe(ing.minlevel);
+
     ing.openingstock = val;
     ing.currentstock = val;
     ing.openingdate  = date;
+    ing.minlevel     = minVal;
+
     await sb.from('ingredients').update({
       openingstock: val, currentstock: val,
-      openingdate: date, updatedat: new Date().toISOString()
+      openingdate: date, minlevel: minVal,
+      updatedat: new Date().toISOString()
     }).eq('id', ing.id);
+    saved++;
   }
 
   closeM('m-opening');
   renderIngredients();
   renderDashboard();
+  populateCategoryFilter();
   setSyncStatus('ok','Synced');
-  toast('✅ Opening stock saved');
+  toast(`✅ Opening stock & min levels saved for ${saved} items`);
+}
+
+function populateBulkMinCat() {
+  const sel = document.getElementById('bulk-min-cat');
+  if (!sel) return;
+  const cats = [...new Set(DB.ingredients.map(i=>i.category))].sort();
+  sel.innerHTML = '<option value="">All Categories</option>' +
+    cats.map(c=>`<option value="${c}">${catLabel(c)}</option>`).join('');
+}
+
+function applyBulkMinLevel() {
+  const cat = document.getElementById('bulk-min-cat').value;
+  const val = safe(document.getElementById('bulk-min-val').value);
+  if (val <= 0) { toast('Enter a min level value greater than 0','err'); return; }
+
+  let count = 0;
+  DB.ingredients.forEach(ing => {
+    if (cat && ing.category !== cat) return;
+    const el = document.getElementById(`opm_${ing.id}`);
+    if (el) {
+      el.value = val.toFixed(3);
+      el.style.background = '#fff';
+      count++;
+    }
+  });
+  toast(`Applied min level ${val} to ${count} ingredients — click Save to confirm`);
 }
 
 // ─────────────────────────────────────────────
@@ -2686,6 +2848,206 @@ async function handleIngredientsUpload(file) {
 // ─────────────────────────────────────────────
 // SQL COPY
 // ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// CONSUMPTION REPORT
+// ─────────────────────────────────────────────
+let _consView = 'item'; // 'item' or 'day'
+
+function setConsRange(days) {
+  const to = new Date();
+  document.getElementById('cons-to').value = to.toISOString().slice(0,10);
+  if (days === 0) {
+    document.getElementById('cons-from').value = '';
+  } else {
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    document.getElementById('cons-from').value = from.toISOString().slice(0,10);
+  }
+  renderConsumption();
+}
+
+function switchConsView(view) {
+  _consView = view;
+  document.getElementById('cons-by-item').style.display = view === 'item' ? 'block' : 'none';
+  document.getElementById('cons-by-day').style.display  = view === 'day'  ? 'block' : 'none';
+  document.getElementById('cons-view-item').style.background = view === 'item' ? 'var(--brand)' : '#fff';
+  document.getElementById('cons-view-item').style.color      = view === 'item' ? '#fff' : 'var(--dark)';
+  document.getElementById('cons-view-item').className = view === 'item' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+  document.getElementById('cons-view-day').style.background  = view === 'day'  ? 'var(--brand)' : '#fff';
+  document.getElementById('cons-view-day').style.color       = view === 'day'  ? '#fff' : 'var(--dark)';
+  document.getElementById('cons-view-day').className = view === 'day' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+  renderConsumption();
+}
+
+function getFilteredClosings() {
+  const from = document.getElementById('cons-from')?.value || '';
+  const to   = document.getElementById('cons-to')?.value   || '';
+  let closings = [...DB.closing];
+  if (from) closings = closings.filter(c => c.bizday >= from);
+  if (to)   closings = closings.filter(c => c.bizday <= to);
+  return closings.sort((a,b) => b.bizday.localeCompare(a.bizday));
+}
+
+function renderConsumption() {
+  const closings = getFilteredClosings();
+
+  if (!closings.length) {
+    document.getElementById('cons-item-tbody').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mid);">No closing data for this period</td></tr>';
+    document.getElementById('cons-day-tbody').innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--mid);">No closing data for this period</td></tr>';
+    document.getElementById('cs-days').textContent  = '0';
+    document.getElementById('cs-total').textContent = fmtCurrency(0);
+    document.getElementById('cs-avg').textContent   = fmtCurrency(0);
+    document.getElementById('cs-top').textContent   = '—';
+    return;
+  }
+
+  // Get all closing items for these closings
+  const closingIds = new Set(closings.map(c => c.id));
+  const allItems   = DB.closingItems.filter(i => closingIds.has(i.closing_id) && safe(i.consumed) > 0);
+
+  // ── STATS ──
+  const totalCost = closings.reduce((s,c) => s + safe(c.totalcost), 0);
+  const avgCost   = closings.length > 0 ? totalCost / closings.length : 0;
+
+  // Top ingredient by cost
+  const ingTotals = {};
+  allItems.forEach(i => {
+    if (!ingTotals[i.itemname]) ingTotals[i.itemname] = 0;
+    ingTotals[i.itemname] += safe(i.consumptioncost);
+  });
+  const topIng = Object.entries(ingTotals).sort((a,b) => b[1]-a[1])[0];
+
+  document.getElementById('cs-days').textContent  = closings.length;
+  document.getElementById('cs-total').textContent = fmtCurrency(totalCost);
+  document.getElementById('cs-avg').textContent   = fmtCurrency(avgCost);
+  document.getElementById('cs-top').textContent   = topIng ? topIng[0] : '—';
+
+  if (_consView === 'item') {
+    renderConsumptionByItem(allItems, totalCost);
+  } else {
+    renderConsumptionByDay(closings);
+  }
+}
+
+function renderConsumptionByItem(allItems, totalCost) {
+  // Aggregate by ingredient name
+  const map = {};
+  allItems.forEach(i => {
+    if (!map[i.itemname]) {
+      map[i.itemname] = {
+        name: i.itemname,
+        unit: i.unit,
+        category: '',
+        totalConsumed: 0,
+        totalCost: 0,
+        days: new Set(),
+        costPerUnitSum: 0,
+        costPerUnitCount: 0
+      };
+    }
+    map[i.itemname].totalConsumed    += safe(i.consumed);
+    map[i.itemname].totalCost        += safe(i.consumptioncost);
+    map[i.itemname].days.add(i.closing_id);
+    if (safe(i.costperunit) > 0) {
+      map[i.itemname].costPerUnitSum   += safe(i.costperunit);
+      map[i.itemname].costPerUnitCount += 1;
+    }
+  });
+
+  // Enrich with category from ingredients master
+  Object.values(map).forEach(row => {
+    const ing = DB.ingredients.find(i => i.name === row.name);
+    if (ing) row.category = catLabel(ing.category);
+  });
+
+  const rows = Object.values(map).sort((a,b) => b.totalCost - a.totalCost);
+  const tbody = document.getElementById('cons-item-tbody');
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mid);">No consumption in this period</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((r, idx) => {
+    const avgCpu = r.costPerUnitCount > 0 ? r.costPerUnitSum / r.costPerUnitCount : 0;
+    const pct    = totalCost > 0 ? (r.totalCost / totalCost * 100).toFixed(1) : '0.0';
+    const barW   = totalCost > 0 ? Math.round(r.totalCost / totalCost * 100) : 0;
+    const rankColor = idx === 0 ? 'var(--danger)' : idx === 1 ? 'var(--warning)' : idx === 2 ? 'var(--brand)' : 'var(--mid)';
+
+    return '<tr>' +
+      '<td><div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:11px;font-weight:800;color:' + rankColor + ';min-width:16px;">#' + (idx+1) + '</span>' +
+        '<div><div style="font-weight:700;">' + r.name + '</div>' +
+          '<div style="height:3px;background:#f3f4f6;border-radius:2px;margin-top:3px;width:100px;">' +
+            '<div style="height:3px;background:' + rankColor + ';border-radius:2px;width:' + barW + '%;"></div>' +
+          '</div>' +
+        '</div></div></td>' +
+      '<td><span class="badge badge-info" style="font-size:10px;">' + (r.category||'—') + '</span></td>' +
+      '<td style="text-align:right;font-weight:700;">' + fmtNum(r.totalConsumed, 3) + '</td>' +
+      '<td><span class="unit-pill">' + r.unit + '</span></td>' +
+      '<td style="text-align:right;color:var(--mid);">' + fmtCurrency(avgCpu) + '</td>' +
+      '<td style="text-align:right;font-weight:800;color:var(--danger);">' + fmtCurrency(r.totalCost) + '</td>' +
+      '<td style="text-align:right;">' +
+        '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">' + pct + '%</span>' +
+      '</td>' +
+      '<td style="color:var(--mid);font-size:12px;">' + r.days.size + ' days</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderConsumptionByDay(closings) {
+  const tbody = document.getElementById('cons-day-tbody');
+  tbody.innerHTML = closings.map(c => {
+    const items    = DB.closingItems.filter(i => i.closing_id === c.id && safe(i.consumed) > 0);
+    const topItems = items.sort((a,b) => safe(b.consumptioncost) - safe(a.consumptioncost)).slice(0,3);
+    return '<tr>' +
+      '<td><span class="day-badge"><i class="fas fa-moon"></i>' + fmtDate(c.bizday) + '</span></td>' +
+      '<td>' + c.closedby + '</td>' +
+      '<td style="text-align:right;font-weight:700;">' + items.length + '</td>' +
+      '<td style="text-align:right;font-weight:800;color:var(--danger);">' + fmtCurrency(c.totalcost) + '</td>' +
+      '<td style="font-size:12px;color:var(--mid);">' +
+        topItems.map(i => i.itemname + ' (' + fmtNum(i.consumed,2) + ' ' + i.unit + ')').join(', ') +
+        (items.length > 3 ? ' +' + (items.length-3) + ' more' : '') +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function exportConsumptionReport() {
+  const closings = getFilteredClosings();
+  if (!closings.length) { toast('No data to export','err'); return; }
+
+  const closingIds = new Set(closings.map(c => c.id));
+  const allItems   = DB.closingItems.filter(i => closingIds.has(i.closing_id) && safe(i.consumed) > 0);
+
+  // Build flat export with bizday joined
+  const closingMap = {};
+  closings.forEach(c => closingMap[c.id] = c);
+
+  const data = allItems.map(i => ({
+    'Business Day': closingMap[i.closing_id]?.bizday || '',
+    'Closed By':    closingMap[i.closing_id]?.closedby || '',
+    'Ingredient':   i.itemname,
+    'Unit':         i.unit,
+    'Opening':      i.opening,
+    'GRN Today':    i.grntoday,
+    'Available':    i.available,
+    'Physical':     i.physical,
+    'Consumed':     i.consumed,
+    'Cost/Unit':    i.costperunit,
+    'Consumption Cost': i.consumptioncost
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Consumption');
+  blobDownload(wb, 'Consumption_Report_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('Exported consumption report');
+}
+
 function copySQL() {
   const text = document.getElementById('sql-block').textContent;
   navigator.clipboard.writeText(text).then(()=>toast('SQL copied to clipboard'));
@@ -2699,6 +3061,11 @@ window.addEventListener('DOMContentLoaded', () => {
   const today = bizDayToday();
   const setIfEmpty = id => { const el=document.getElementById(id); if(el&&!el.value) el.value=today; };
   ['quick-grn-date','quick-closing-date','cl-filter-date'].forEach(setIfEmpty);
+
+  // Default consumption range to last 30 days
+  const consFrom = new Date(); consFrom.setDate(consFrom.getDate()-30);
+  document.getElementById('cons-from').value = consFrom.toISOString().slice(0,10);
+  document.getElementById('cons-to').value   = today;
 
   init();
 });
