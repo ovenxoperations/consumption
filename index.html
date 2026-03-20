@@ -759,7 +759,7 @@ tr:hover td{background:#fafafa;}
           <button class="btn btn-outline btn-sm" onclick="addGRNRow()"><i class="fas fa-plus"></i> Add Row</button>
         </div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;padding:8px;background:#f8f9fb;border-radius:8px;font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;">
-          <div>Ingredient</div><div>Qty</div><div>Unit Cost</div><div>Total</div><div></div>
+          <div>Ingredient</div><div>Supplier</div><div>Qty</div><div>Unit Cost</div><div>Total</div><div></div>
         </div>
         <div id="grn-rows" style="max-height:320px;overflow-y:auto;"></div>
       </div>
@@ -1421,11 +1421,12 @@ function addGRNRow() {
     `<option value="${i.id}" data-unit="${i.unit}" data-cost="${i.costperunit}">${i.name} (${i.unit})</option>`
   ).join('');
   const row = document.createElement('div');
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
-  row.innerHTML = `
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
+row.innerHTML = `
     <select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;">
       <option value="">Select ingredient</option>${opts}
     </select>
+    <input class="form-input grn-sup" type="text" placeholder="Supplier" style="font-size:12px;">
     <input class="form-input grn-qty" type="number" step="0.001" placeholder="0.000" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">
     <input class="form-input grn-ucost" type="number" step="0.01" placeholder="0.00" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">
     <div class="grn-line" style="font-weight:700;font-size:13px;text-align:right;padding-right:4px;">Rs 0.00</div>
@@ -1483,7 +1484,8 @@ async function saveGRN() {
     if (!ingId || qty <= 0) continue;
     const ing = DB.ingredients.find(i=>i.id===ingId);
     if (!ing) continue;
-    items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name });
+    const itemSup = row.querySelector('.grn-sup').value.trim() || supplier;
+items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: itemSup });
   }
 
   if (!items.length) { toast('Add at least one item','err'); return; }
@@ -1514,7 +1516,8 @@ async function saveGRN() {
     qty:           i.qty,
     unit:          i.unit,
     unitcost:      i.ucost,
-    linetotal:     i.qty * i.ucost
+    linetotal:     i.qty * i.ucost,
+    itemsupplier:  i.itemSupplier
   }));
   const { error: iErr } = await sb.from('grn_items').insert(itemRows);
   if (iErr) { toast('❌ '+iErr.message,'err'); return; }
@@ -1583,11 +1586,12 @@ function renderGRN() {
             '<tr style="background:#f8f9fb;"><td colspan="3" style="text-align:right;font-size:11px;color:var(--mid);padding:6px 12px;">' + sup + ' subtotal</td><td style="font-weight:700;font-size:12px;">' + fmtCurrency(subTotal) + '</td></tr>';
         }).join('')
       : items.map(i =>
-          '<tr><td style="font-weight:600;">' + i.itemname + '</td>' +
-          '<td><span class="unit-pill">' + fmtNum(i.qty,3) + ' ' + i.unit + '</span></td>' +
-          '<td>' + fmtCurrency(i.unitcost) + '</td>' +
-          '<td style="font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
-        ).join('');
+  '<tr><td style="font-weight:600;">' + i.itemname + '</td>' +
+  '<td><span class="badge badge-sup">' + (i.itemsupplier||grn.supplier) + '</span></td>' +
+  '<td><span class="unit-pill">' + fmtNum(i.qty,3) + ' ' + i.unit + '</span></td>' +
+  '<td>' + fmtCurrency(i.unitcost) + '</td>' +
+  '<td style="font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
+).join('');
 
     return '<div class="grn-card">' +
       '<div class="grn-card-head">' +
@@ -1610,7 +1614,7 @@ function renderGRN() {
         '</div>' +
       '</div>' +
       '<div class="tbl-wrap">' +
-        '<table><thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
+        '<table><thead><tr><th>Item</th><th>Supplier</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
         '<tbody>' + tableRows + '</tbody></table>' +
       '</div>' +
       (grn.notes ? '<div style="margin-top:10px;padding:10px;background:#fffbeb;border-radius:8px;font-size:12px;">' + grn.notes + '</div>' : '') +
@@ -1751,11 +1755,12 @@ function editGRN(id) {
     ).join('');
 
     const row = document.createElement('div');
-    row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
+    row.style.cssText = 'display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
     row.innerHTML =
       '<select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;">' +
         '<option value="">Select ingredient</option>' + opts +
       '</select>' +
+      '<input class="form-input grn-sup" type="text" placeholder="Supplier" value="' + (item.itemsupplier||grn.supplier) + '" style="font-size:12px;">' +
       '<input class="form-input grn-qty" type="number" step="0.001" value="' + item.qty + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
       '<input class="form-input grn-ucost" type="number" step="0.01" value="' + item.unitcost + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
       '<div class="grn-line" style="font-weight:700;font-size:13px;text-align:right;padding-right:4px;">' + fmtCurrency(item.linetotal) + '</div>' +
