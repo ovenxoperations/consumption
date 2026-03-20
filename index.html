@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +10,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
 <style>
 :root {
   --brand:       #f37021;
@@ -311,9 +309,94 @@ tr:hover td{background:#fafafa;}
   .stats{grid-template-columns:repeat(2,1fr);}
   .stat-val{font-size:20px;}
 }
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  position:fixed;inset:0;
+  background:linear-gradient(135deg,#1a0000 0%,#3d0000 40%,#8b0000 70%,#f37021 100%);
+  display:flex;justify-content:center;align-items:center;
+  z-index:9999;
+}
+#login-screen.hidden { display:none; }
+.login-box {
+  background:rgba(255,255,255,0.07);
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:24px;
+  padding:48px 40px;
+  width:100%;max-width:400px;
+  box-shadow:0 32px 64px rgba(0,0,0,0.5);
+  text-align:center;
+}
+.login-logo {
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:36px;font-weight:900;
+  color:#fff;letter-spacing:-1px;
+  margin-bottom:4px;
+}
+.login-logo span { color:#f37021; }
+.login-sub {
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:rgba(255,255,255,0.4);
+  margin-bottom:40px;
+}
+.login-field {
+  width:100%;padding:14px 18px;
+  background:rgba(255,255,255,0.1);
+  border:2px solid rgba(255,255,255,0.15);
+  border-radius:12px;
+  color:#fff;font-size:18px;
+  font-family:'Inter',sans-serif;
+  font-weight:700;letter-spacing:4px;
+  text-align:center;
+  transition:border-color .2s;
+  margin-bottom:16px;
+}
+.login-field::placeholder { letter-spacing:1px;font-size:13px;font-weight:400;color:rgba(255,255,255,0.3); }
+.login-field:focus { outline:none;border-color:#f37021; }
+.login-btn {
+  width:100%;padding:15px;
+  background:linear-gradient(135deg,#f37021,#b34e12);
+  color:#fff;border:none;border-radius:12px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:15px;font-weight:800;
+  letter-spacing:1px;text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 6px 0 #6b2a00;
+  transition:all .15s;
+}
+.login-btn:hover { filter:brightness(1.1); }
+.login-btn:active { transform:translateY(3px);box-shadow:0 3px 0 #6b2a00; }
+.login-error {
+  color:#ff6b6b;font-size:12px;font-weight:700;
+  margin-top:12px;display:none;
+}
+.login-error.show { display:block; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%,60%{transform:translateX(-8px)}
+  40%,80%{transform:translateX(8px)}
+}
+.login-box.shake { animation:shake .4s ease; }
 </style>
 </head>
 <body>
+  <!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box" id="login-box">
+    <div class="login-logo">OVEN <span>X</span></div>
+    <div class="login-sub">Inventory Management</div>
+    <input
+      class="login-field"
+      id="login-pass"
+      type="password"
+      placeholder="Enter password"
+      onkeydown="if(event.key==='Enter') doLogin()"
+      autofocus
+    >
+    <button class="login-btn" onclick="doLogin()">UNLOCK →</button>
+    <div class="login-error" id="login-error">❌ Incorrect password. Try again.</div>
+  </div>
+</div>
 
 <!-- TOAST -->
 <div id="toast" class="toast">
@@ -366,6 +449,7 @@ tr:hover td{background:#fafafa;}
     </button>
   </div>
 </nav>
+
 
 <!-- MAIN -->
 <main class="main">
@@ -3076,6 +3160,34 @@ window.addEventListener('DOMContentLoaded', () => {
 
   init();
 });
+// ─────────────────────────────────────────────
+// LOGIN SYSTEM
+// ─────────────────────────────────────────────
+const APP_PASSWORD = 'ovenx1234';
+
+function doLogin() {
+  const entered = document.getElementById('login-pass').value;
+  const box     = document.getElementById('login-box');
+  const err     = document.getElementById('login-error');
+
+  if (entered === APP_PASSWORD) {
+    sessionStorage.setItem('ovenx_auth', '1');
+    document.getElementById('login-screen').classList.add('hidden');
+    err.classList.remove('show');
+  } else {
+    box.classList.remove('shake');
+    void box.offsetWidth; // force reflow to restart animation
+    box.classList.add('shake');
+    err.classList.add('show');
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+// Auto-unlock if already authenticated this session
+if (sessionStorage.getItem('ovenx_auth') === '1') {
+  document.getElementById('login-screen').classList.add('hidden');
+}
 </script>
 </body>
 </html>
