@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1797,7 +1798,8 @@ async function updateGRN() {
     if (!ingId || qty <= 0) continue;
     const ing = DB.ingredients.find(i=>i.id===ingId);
     if (!ing) continue;
-    newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name });
+    const itemSup = row.querySelector('.grn-sup')?.value.trim() || supplier;
+newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: itemSup });
   }
   if (!newItems.length) { toast('Add at least one item','err'); return; }
 
