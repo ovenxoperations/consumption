@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -377,6 +378,37 @@ tr:hover td{background:#fafafa;}
   40%,80%{transform:translateX(8px)}
 }
 .login-box.shake { animation:shake .4s ease; }
+--purple: #7c3aed;
+--purple-lt: #f5f3ff;
+
+.btn-purple { background: var(--purple); color: #fff; }
+
+.edit-phys-input {
+  width: 100px; text-align: right; padding: 6px 10px;
+  border: 2px solid var(--purple); border-radius: 6px;
+  font-size: 13px; font-weight: 600;
+  background: #faf5ff;
+  transition: border-color .2s, background .2s;
+}
+.edit-phys-input:focus {
+  outline: none;
+  border-color: var(--purple);
+  background: #ede9fe;
+}
+.edit-mode-banner {
+  background: linear-gradient(135deg, #ede9fe, #faf5ff);
+  border: 2px solid var(--purple);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple);
+}
+.edit-row-changed td { background: #faf5ff !important; }
 </style>
 </head>
 <body>
@@ -2527,18 +2559,31 @@ async function commitUploadClosing() {
 function renderClosingReport() {
   const date = document.getElementById('cl-filter-date')?.value;
   const div  = document.getElementById('closing-report');
-  if (!date) { div.innerHTML=`<div class="empty"><i class="fas fa-moon"></i><p>Select a date to view report</p></div>`; return; }
+  if (!date) {
+    div.innerHTML = `<div class="empty"><i class="fas fa-moon"></i><p>Select a date to view report</p></div>`;
+    return;
+  }
+  const closing = DB.closing.find(c => c.bizday === date);
+  if (!closing) {
+    div.innerHTML = `<div class="empty"><i class="fas fa-moon"></i><p>No closing found for ${fmtDate(date)}. Do a closing first.</p></div>`;
+    return;
+  }
+  const items = DB.closingItems.filter(i => i.closing_id === closing.id);
 
-  const closing = DB.closing.find(c=>c.bizday===date);
-  if (!closing) { div.innerHTML=`<div class="empty"><i class="fas fa-moon"></i><p>No closing found for ${fmtDate(date)}. Do a closing first.</p></div>`; return; }
-
-  const items = DB.closingItems.filter(i=>i.closing_id===closing.id);
   div.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
       <div class="stat ok"><div class="stat-label">Business Day</div><div class="stat-val" style="font-size:16px;">${fmtDate(closing.bizday)}</div></div>
       <div class="stat"><div class="stat-label">Closed By</div><div class="stat-val" style="font-size:16px;">${closing.closedby}</div></div>
       <div class="stat warn"><div class="stat-label">Items Consumed</div><div class="stat-val">${items.filter(i=>i.consumed>0).length}</div></div>
-      <div class="stat bad"><div class="stat-label">Total Consumption Cost</div><div class="stat-val" style="font-size:18px;">${fmtCurrency(closing.totalcost)}</div></div>
+      <div class="stat bad" id="closing-report-total-stat">
+        <div class="stat-label">Total Consumption Cost</div>
+        <div class="stat-val" id="closing-report-total-val" style="font-size:18px;">${fmtCurrency(closing.totalcost)}</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;gap:8px;" id="closing-report-actions">
+      <button class="btn btn-sm btn-purple" onclick="startEditClosingReport('${closing.id}')">
+        <i class="fas fa-edit"></i> Edit Physical Counts
+      </button>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -2548,8 +2593,8 @@ function renderClosingReport() {
             <th>Physical</th><th>Consumed</th><th>Cost/Unit</th><th>Cost</th>
           </tr>
         </thead>
-        <tbody>
-          ${items.map(i=>`<tr>
+        <tbody id="closing-report-tbody">
+          ${items.map(i => `<tr>
             <td style="font-weight:600;">${i.itemname}</td>
             <td style="color:#1e40af;">${fmtNum(i.opening,3)}</td>
             <td style="color:var(--success);">+${fmtNum(i.grntoday,3)}</td>
@@ -2557,12 +2602,144 @@ function renderClosingReport() {
             <td style="color:var(--brand);font-weight:700;">${fmtNum(i.physical,3)}</td>
             <td style="font-weight:900;color:var(--danger);">${fmtNum(i.consumed,3)}</td>
             <td>${fmtCurrency(i.costperunit)}</td>
-            <td style="font-weight:700;">${i.consumed>0?fmtCurrency(i.consumptioncost):'—'}</td>
+            <td style="font-weight:700;">${i.consumed>0 ? fmtCurrency(i.consumptioncost) : '—'}</td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>
   `;
+}
+function startEditClosingReport(closingId) {
+  const closing = DB.closing.find(c => c.id === closingId);
+  if (!closing) return;
+  const items = DB.closingItems.filter(i => i.closing_id === closingId);
+
+  const actionsDiv = document.getElementById('closing-report-actions');
+  if (actionsDiv) {
+    actionsDiv.innerHTML = `
+      <div class="edit-mode-banner" style="flex:1;margin-right:8px;">
+        <i class="fas fa-pencil-alt"></i>
+        Edit mode — change physical counts below. Consumed & cost recalculate live.
+      </div>
+      <button class="btn btn-sm btn-outline" onclick="renderClosingReport()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="btn btn-sm btn-purple" onclick="saveEditedClosingReport('${closingId}')">
+        <i class="fas fa-save"></i> Save Changes
+      </button>
+    `;
+  }
+
+  const tbody = document.getElementById('closing-report-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = items.map(item => {
+    const avail = safe(item.available);
+    return `<tr id="edit-row-${item.id}" data-item-id="${item.id}" data-available="${avail}" data-cpu="${safe(item.costperunit)}">
+      <td style="font-weight:600;">${item.itemname}</td>
+      <td style="color:#1e40af;">${fmtNum(item.opening, 3)}</td>
+      <td style="color:var(--success);">+${fmtNum(item.grntoday, 3)}</td>
+      <td style="font-weight:700;">${fmtNum(avail, 3)}</td>
+      <td>
+        <input
+          class="edit-phys-input"
+          type="number"
+          step="0.001"
+          min="0"
+          id="edit-phys-${item.id}"
+          value="${fmtNum(item.physical, 3)}"
+          oninput="recalcEditRow('${item.id}')"
+          title="Edit physical count for ${item.itemname}"
+        >
+      </td>
+      <td id="edit-consumed-${item.id}" style="font-weight:900;color:var(--danger);">${fmtNum(item.consumed, 3)}</td>
+      <td>${fmtCurrency(item.costperunit)}</td>
+      <td id="edit-cost-${item.id}" style="font-weight:700;">${item.consumed > 0 ? fmtCurrency(item.consumptioncost) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function recalcEditRow(itemId) {
+  const row = document.getElementById('edit-row-' + itemId);
+  if (!row) return;
+  const avail    = safe(row.dataset.available);
+  const cpu      = safe(row.dataset.cpu);
+  const physEl   = document.getElementById('edit-phys-' + itemId);
+  const phys     = physEl.value !== '' ? safe(physEl.value) : avail;
+  const consumed = Math.max(0, avail - phys);
+  const cost     = consumed * cpu;
+
+  document.getElementById('edit-consumed-' + itemId).textContent = fmtNum(consumed, 3);
+  document.getElementById('edit-cost-'     + itemId).textContent = consumed > 0 ? fmtCurrency(cost) : '—';
+  row.classList.add('edit-row-changed');
+
+  // Update running total live
+  let runningTotal = 0;
+  document.querySelectorAll('[id^="edit-row-"]').forEach(r => {
+    const costEl = document.getElementById('edit-cost-' + r.dataset.itemId);
+    if (costEl && costEl.textContent !== '—') {
+      runningTotal += parseFloat(costEl.textContent.replace('Rs ','').replace(/,/g,'')) || 0;
+    }
+  });
+  const totalVal = document.getElementById('closing-report-total-val');
+  if (totalVal) { totalVal.textContent = fmtCurrency(runningTotal); totalVal.style.color = '#dc2626'; }
+}
+
+async function saveEditedClosingReport(closingId) {
+  const closing  = DB.closing.find(c => c.id === closingId);
+  if (!closing) return;
+  const oldItems = DB.closingItems.filter(i => i.closing_id === closingId);
+
+  setSyncStatus('busy', 'Saving edits…');
+
+  let newTotalCost = 0;
+  const updatedItems = [];
+
+  for (const item of oldItems) {
+    const physEl   = document.getElementById('edit-phys-' + item.id);
+    const physical = physEl ? safe(physEl.value) : safe(item.physical);
+    const consumed = Math.max(0, safe(item.available) - physical);
+    const cost     = consumed * safe(item.costperunit);
+    newTotalCost  += cost;
+    updatedItems.push({ ...item, physical, consumed, consumptioncost: cost });
+
+    const { error } = await sb.from('closing_items').update({
+      physical, consumed, consumptioncost: cost
+    }).eq('id', item.id);
+    if (error) { toast('❌ ' + error.message, 'err'); setSyncStatus('ok', ''); return; }
+  }
+
+  const { error: hErr } = await sb.from('closing').update({ totalcost: newTotalCost }).eq('id', closingId);
+  if (hErr) { toast('❌ ' + hErr.message, 'err'); setSyncStatus('ok', ''); return; }
+
+  // If latest closing, sync ingredient stock too
+  const isLatest = [...DB.closing].sort((a,b) => b.bizday.localeCompare(a.bizday))[0]?.id === closingId;
+  if (isLatest) {
+    for (const item of updatedItems) {
+      const ing = DB.ingredients.find(i => i.id === item.ingredient_id);
+      if (ing) {
+        ing.currentstock = item.physical;
+        ing.openingstock = item.physical;
+        await sb.from('ingredients').update({
+          currentstock: item.physical, openingstock: item.physical,
+          updatedat: new Date().toISOString()
+        }).eq('id', ing.id);
+      }
+    }
+  }
+
+  // Update local DB
+  closing.totalcost = newTotalCost;
+  updatedItems.forEach(u => {
+    const idx = DB.closingItems.findIndex(i => i.id === u.id);
+    if (idx >= 0) DB.closingItems[idx] = u;
+  });
+
+  setSyncStatus('ok', 'Synced');
+  toast(`✅ Closing corrected · ${fmtCurrency(newTotalCost)} total`);
+  renderClosingReport();
+  renderDashboard();
+  if (isLatest) renderIngredients();
 }
 
 function renderClosingHistory() {
