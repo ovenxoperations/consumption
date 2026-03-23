@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,6 +29,8 @@
   --radius-sm:   8px;
   --shadow:      0 2px 12px rgba(0,0,0,.07);
   --shadow-lg:   0 8px 32px rgba(0,0,0,.12);
+  --purple:      #7c3aed;
+  --purple-lt:   #f5f3ff;
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -124,6 +125,7 @@ body{
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;filter:none!important;}
 .btn-sm{padding:6px 11px;font-size:12px;}
 .btn-icon{width:32px;height:32px;padding:0;justify-content:center;border-radius:var(--radius-sm);}
+.btn-purple{background:var(--purple);color:#fff;}
 
 /* ── CARDS ── */
 .card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);}
@@ -303,6 +305,73 @@ tr:hover td{background:#fafafa;}
   white-space:pre;
 }
 
+/* ── EDIT MODE (CLOSING REPORT) ── */
+.edit-phys-input {
+  width: 90px; text-align: right; padding: 6px 10px;
+  border: 2px solid var(--purple); border-radius: 6px;
+  font-size: 13px; font-weight: 600;
+  background: #faf5ff;
+  transition: border-color .2s, background .2s;
+}
+.edit-phys-input:focus {
+  outline: none;
+  border-color: var(--purple);
+  background: #ede9fe;
+}
+.edit-phys-input.inp-opening {
+  border-color: #3b82f6 !important;
+  background: #eff6ff !important;
+}
+.edit-phys-input.inp-opening:focus { background: #dbeafe !important; }
+.edit-phys-input.inp-grn {
+  border-color: #059669 !important;
+  background: #f0fdf4 !important;
+}
+.edit-phys-input.inp-grn:focus { background: #dcfce7 !important; }
+.edit-phys-input.inp-cpu {
+  border-color: #d97706 !important;
+  background: #fffbeb !important;
+}
+.edit-phys-input.inp-cpu:focus { background: #fef3c7 !important; }
+
+.edit-mode-banner {
+  background: linear-gradient(135deg, #ede9fe, #faf5ff);
+  border: 2px solid var(--purple);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple);
+}
+.edit-row-changed td { background: #faf5ff !important; }
+
+/* Auto-calc badges in edit mode */
+.calc-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 13px;
+  min-width: 72px;
+  text-align: center;
+  transition: all 0.2s;
+}
+.calc-badge-avail    { background: #f1f5f9; color: #1e293b; border: 2px solid #cbd5e1; }
+.calc-badge-consumed { background: #fef2f2; color: var(--danger); border: 2px solid #fecaca; }
+
+/* Edit legend strip */
+.edit-legend {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px;
+  padding: 10px 14px; background: #f8f9fb; border-radius: 8px;
+  font-size: 11px; font-weight: 600; color: var(--mid);
+}
+.edit-legend-item { display: flex; align-items: center; gap: 5px; }
+.edit-legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
+
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
   .main{padding:16px;}
@@ -378,37 +447,6 @@ tr:hover td{background:#fafafa;}
   40%,80%{transform:translateX(8px)}
 }
 .login-box.shake { animation:shake .4s ease; }
---purple: #7c3aed;
---purple-lt: #f5f3ff;
-
-.btn-purple { background: var(--purple); color: #fff; }
-
-.edit-phys-input {
-  width: 100px; text-align: right; padding: 6px 10px;
-  border: 2px solid var(--purple); border-radius: 6px;
-  font-size: 13px; font-weight: 600;
-  background: #faf5ff;
-  transition: border-color .2s, background .2s;
-}
-.edit-phys-input:focus {
-  outline: none;
-  border-color: var(--purple);
-  background: #ede9fe;
-}
-.edit-mode-banner {
-  background: linear-gradient(135deg, #ede9fe, #faf5ff);
-  border: 2px solid var(--purple);
-  border-radius: 10px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--purple);
-}
-.edit-row-changed td { background: #faf5ff !important; }
 </style>
 </head>
 <body>
@@ -531,7 +569,6 @@ tr:hover td{background:#fafafa;}
       <div class="drop-zone" onclick="document.getElementById('ing-upload-file').click()">
         <i class="fas fa-file-upload"></i>
         <strong>Click to upload Ingredients Excel</strong>
-        
         <input type="file" id="ing-upload-file" accept=".xlsx,.xls" style="display:none;" onchange="handleIngredientsUploadFile(event)">
       </div>
       <div id="ing-upload-preview" style="display:none;margin-top:14px;"></div>
@@ -597,7 +634,6 @@ tr:hover td{background:#fafafa;}
       <div class="drop-zone" onclick="document.getElementById('quick-grn-file').click()">
         <i class="fas fa-file-upload"></i>
         <strong>Click to upload GRN (Excel or PDF)</strong>
-        
         <input type="file" id="quick-grn-file" accept=".xlsx,.xls,.pdf" style="display:none;" onchange="handleGRNUpload(event)">
       </div>
       <div id="grn-preview" style="display:none;margin-top:14px;"></div>
@@ -647,7 +683,6 @@ tr:hover td{background:#fafafa;}
       <div class="drop-zone" onclick="document.getElementById('quick-closing-file').click()">
         <i class="fas fa-file-upload"></i>
         <strong>Click to upload Closing Excel</strong>
-        
         <input type="file" id="quick-closing-file" accept=".xlsx,.xls" style="display:none;" onchange="handleClosingUpload(event)">
       </div>
       <div id="closing-preview" style="display:none;margin-top:14px;"></div>
@@ -1050,12 +1085,11 @@ tr:hover td{background:#fafafa;}
       <button class="modal-close" onclick="closeM('m-sql')">&times;</button>
     </div>
     <div class="modal-body">
-      <p style="color:var(--mid);font-size:13px;margin-bottom:8px;">Run this in your Supabase → SQL Editor once. All column names are lowercase, no underscore confusion.</p>
+      <p style="color:var(--mid);font-size:13px;margin-bottom:8px;">Run this in your Supabase → SQL Editor once.</p>
       <button class="btn btn-outline btn-sm" onclick="copySQL()" style="margin-bottom:8px;"><i class="fas fa-copy"></i> Copy SQL</button>
       <pre id="sql-block" class="sql-block">-- ═══════════════════════════════════════════
 -- OVEN X INVENTORY — SUPABASE SQL SETUP
 -- Run this ONCE in Supabase SQL Editor
--- All columns lowercase, no ambiguity
 -- ═══════════════════════════════════════════
 
 -- 1. INGREDIENTS (master list)
@@ -1135,7 +1169,7 @@ alter publication supabase_realtime add table closing;</pre>
 ═══════════════════════════════════════════ -->
 <script>
 // ─────────────────────────────────────────────
-// CONFIG — put your Supabase keys here
+// CONFIG
 // ─────────────────────────────────────────────
 const SB_URL  = 'https://ypziyhlozwtziurdeuxb.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlweml5aGxvend0eml1cmRldXhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjU3MzQsImV4cCI6MjA4OTM0MTczNH0.-6w7l6oRTEuZJc9pnoVdUsnV3W-j1vCxcTaVnPeKzLk';
@@ -1148,12 +1182,9 @@ let DB = { ingredients: [], grn: [], grnItems: [], closing: [], closingItems: []
 
 // ─────────────────────────────────────────────
 // BUSINESS DAY HELPER
-// Restaurant: 10am → 2am next day = same business day
-// If current time is 00:00–01:59 → business day is yesterday
 // ─────────────────────────────────────────────
 function bizDayToday() {
   const now = new Date();
-  // If past midnight but before 2am, business day is still yesterday
   if (now.getHours() < 2) {
     const yd = new Date(now);
     yd.setDate(yd.getDate() - 1);
@@ -1162,16 +1193,10 @@ function bizDayToday() {
   return now.toISOString().slice(0,10);
 }
 
-// ─────────────────────────────────────────────
-// ID GENERATOR
-// ─────────────────────────────────────────────
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 
-// ─────────────────────────────────────────────
-// FORMAT HELPERS
-// ─────────────────────────────────────────────
 function fmtCurrency(n) {
   const v = parseFloat(n) || 0;
   return 'Rs ' + v.toLocaleString('en-PK', { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -1200,9 +1225,6 @@ function stockStatus(ing) {
   return            { label:'Normal',     cls:'badge-ok',   lv:'ok'  };
 }
 
-// ─────────────────────────────────────────────
-// SYNC STATUS
-// ─────────────────────────────────────────────
 function setSyncStatus(state, msg) {
   const pill = document.getElementById('sync-pill');
   const txt  = document.getElementById('sync-txt');
@@ -1212,9 +1234,6 @@ function setSyncStatus(state, msg) {
   txt.textContent = msg;
 }
 
-// ─────────────────────────────────────────────
-// TOAST
-// ─────────────────────────────────────────────
 let _toastTimer = null;
 function toast(msg, type='ok') {
   const el  = document.getElementById('toast');
@@ -1222,16 +1241,12 @@ function toast(msg, type='ok') {
   const m   = document.getElementById('toast-msg');
   m.textContent = msg;
   el.className  = 'toast show' + (type==='err' ? ' err' : '');
-  ico.className = type==='err'
-    ? 'fas fa-times-circle' : 'fas fa-check-circle';
+  ico.className = type==='err' ? 'fas fa-times-circle' : 'fas fa-check-circle';
   ico.style.color = type==='err' ? 'var(--danger)' : 'var(--success)';
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(()=> el.classList.remove('show'), 3500);
 }
 
-// ─────────────────────────────────────────────
-// MODAL HELPERS
-// ─────────────────────────────────────────────
 function openM(id) { document.getElementById(id).classList.add('open'); }
 function closeM(id){ document.getElementById(id).classList.remove('open'); }
 function tog(id){
@@ -1239,15 +1254,11 @@ function tog(id){
   el.style.display = el.style.display==='none' ? 'block' : 'none';
 }
 
-// ─────────────────────────────────────────────
-// TAB SWITCHING
-// ─────────────────────────────────────────────
 function switchTab(btn) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById(btn.dataset.tab).classList.add('active');
-  // Refresh data for the tab
   const tab = btn.dataset.tab;
   if (tab === 't-dash')        { renderDashboard(); }
   if (tab === 't-ingredients') { renderIngredients(); }
@@ -1256,18 +1267,12 @@ function switchTab(btn) {
   if (tab === 't-consumption') { renderConsumption(); }
 }
 
-// ─────────────────────────────────────────────
-// SUPABASE INIT & LOAD
-// ─────────────────────────────────────────────
 async function init() {
   setSyncStatus('busy', 'Connecting…');
   try {
     sb = window.supabase.createClient(SB_URL, SB_KEY);
-
-    // Test connection
     const { error } = await sb.from('ingredients').select('count',{count:'exact',head:true});
     if (error) throw error;
-
     await loadAll();
     setSyncStatus('ok', `Connected · ${DB.ingredients.length} items`);
     toast('✅ Connected to Supabase');
@@ -1282,7 +1287,6 @@ async function init() {
 
 async function loadAll() {
   setSyncStatus('busy', 'Loading data…');
-
   const [
     { data: ings },
     { data: grns },
@@ -1296,13 +1300,11 @@ async function loadAll() {
     sb.from('closing').select('*').order('bizday', {ascending:false}),
     sb.from('closing_items').select('*')
   ]);
-
   DB.ingredients   = ings   || [];
   DB.grn           = grns   || [];
   DB.grnItems      = gItems || [];
   DB.closing       = cls    || [];
   DB.closingItems  = cItems || [];
-
   setSyncStatus('ok', `Synced · ${DB.ingredients.length} items`);
   populateCategoryFilter();
 }
@@ -1322,7 +1324,6 @@ function renderDashboard() {
   document.getElementById('s-out').textContent   = out;
   document.getElementById('s-val').textContent   = fmtCurrency(val);
 
-  // Alerts
   const alertDiv = document.getElementById('dash-alerts');
   const critical = ings.filter(i => stockStatus(i).lv !== 'ok');
   if (critical.length === 0) {
@@ -1343,7 +1344,6 @@ function renderDashboard() {
     }).join('');
   }
 
-  // Recent closings
   const rcDiv = document.getElementById('dash-recent-closing');
   if (DB.closing.length === 0) {
     rcDiv.innerHTML = `<div class="empty"><i class="fas fa-moon"></i><p>No closing records yet</p></div>`;
@@ -1440,7 +1440,6 @@ function exportIngredients() {
   blobDownload(wb, `Ingredients_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-// ADD / EDIT INGREDIENT
 function openAddIngredient() {
   document.getElementById('ing-modal-title').textContent = 'Add Ingredient';
   document.getElementById('ing-edit-id').value  = '';
@@ -1493,7 +1492,6 @@ async function saveIngredient() {
   const { error } = await sb.from('ingredients').upsert(rec, {onConflict:'id'});
   if (error) { toast('❌ '+error.message,'err'); return; }
 
-  // Update local
   const idx = DB.ingredients.findIndex(i=>i.id===rec.id);
   if (idx>=0) DB.ingredients[idx] = rec; else DB.ingredients.push(rec);
   DB.ingredients.sort((a,b)=>a.name.localeCompare(b.name));
@@ -1539,7 +1537,7 @@ function addGRNRow() {
   ).join('');
   const row = document.createElement('div');
   row.style.cssText = 'display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
-row.innerHTML = `
+  row.innerHTML = `
     <select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;">
       <option value="">Select ingredient</option>${opts}
     </select>
@@ -1602,7 +1600,7 @@ async function saveGRN() {
     const ing = DB.ingredients.find(i=>i.id===ingId);
     if (!ing) continue;
     const itemSup = row.querySelector('.grn-sup').value.trim() || supplier;
-items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: itemSup });
+    items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: itemSup });
   }
 
   if (!items.length) { toast('Add at least one item','err'); return; }
@@ -1612,34 +1610,24 @@ items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: it
 
   setSyncStatus('busy', 'Saving GRN…');
 
-  // Save header
   const { error: hErr } = await sb.from('grn').insert({
-    id:         grnId,
-    bizday,
-    supplier,
-    invoiceno:  document.getElementById('grn-invoice').value.trim(),
+    id: grnId, bizday, supplier,
+    invoiceno: document.getElementById('grn-invoice').value.trim(),
     grandtotal: grandTotal,
-    notes:      document.getElementById('grn-notes').value.trim(),
-    createdat:  new Date().toISOString()
+    notes: document.getElementById('grn-notes').value.trim(),
+    createdat: new Date().toISOString()
   });
   if (hErr) { toast('❌ '+hErr.message,'err'); setSyncStatus('ok',''); return; }
 
-  // Save items
   const itemRows = items.map(i=>({
-    id:            uid(),
-    grn_id:        grnId,
-    ingredient_id: i.ingId,
-    itemname:      i.name,
-    qty:           i.qty,
-    unit:          i.unit,
-    unitcost:      i.ucost,
-    linetotal:     i.qty * i.ucost,
-    itemsupplier:  i.itemSupplier
+    id: uid(), grn_id: grnId, ingredient_id: i.ingId,
+    itemname: i.name, qty: i.qty, unit: i.unit,
+    unitcost: i.ucost, linetotal: i.qty * i.ucost,
+    itemsupplier: i.itemSupplier
   }));
   const { error: iErr } = await sb.from('grn_items').insert(itemRows);
   if (iErr) { toast('❌ '+iErr.message,'err'); return; }
 
-  // Update stock
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
@@ -1651,7 +1639,6 @@ items.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: it
     }
   }
 
-  // Update local
   DB.grn.unshift({ id:grnId, bizday, supplier, grandtotal:grandTotal, invoiceno:'', notes:'' });
   DB.grnItems.push(...itemRows);
 
@@ -1680,8 +1667,6 @@ function renderGRN() {
 
   cont.innerHTML = list.map(grn => {
     const items = DB.grnItems.filter(i=>i.grn_id===grn.id);
-
-    // Group items by itemSupplier (falls back to grn.supplier)
     const supGroups = {};
     items.forEach(i => {
       const s = (i.itemsupplier && i.itemsupplier.trim()) ? i.itemsupplier : grn.supplier;
@@ -1693,22 +1678,23 @@ function renderGRN() {
     const tableRows = multiSupplier
       ? Object.entries(supGroups).map(([sup, sitems]) => {
           const subTotal = sitems.reduce((s,i)=>s+safe(i.linetotal),0);
-          return '<tr style="background:#f0fdf4;"><td colspan="4" style="font-weight:700;color:#059669;padding:8px 12px;font-size:12px;">&#127978; ' + sup + '</td></tr>' +
+          return '<tr style="background:#f0fdf4;"><td colspan="5" style="font-weight:700;color:#059669;padding:8px 12px;font-size:12px;">&#127978; ' + sup + '</td></tr>' +
             sitems.map(i =>
               '<tr><td style="font-weight:600;padding-left:20px;">' + i.itemname + '</td>' +
+              '<td></td>' +
               '<td><span class="unit-pill">' + fmtNum(i.qty,3) + ' ' + i.unit + '</span></td>' +
               '<td>' + fmtCurrency(i.unitcost) + '</td>' +
               '<td style="font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
             ).join('') +
-            '<tr style="background:#f8f9fb;"><td colspan="3" style="text-align:right;font-size:11px;color:var(--mid);padding:6px 12px;">' + sup + ' subtotal</td><td style="font-weight:700;font-size:12px;">' + fmtCurrency(subTotal) + '</td></tr>';
+            '<tr style="background:#f8f9fb;"><td colspan="4" style="text-align:right;font-size:11px;color:var(--mid);padding:6px 12px;">' + sup + ' subtotal</td><td style="font-weight:700;font-size:12px;">' + fmtCurrency(subTotal) + '</td></tr>';
         }).join('')
       : items.map(i =>
-  '<tr><td style="font-weight:600;">' + i.itemname + '</td>' +
-  '<td><span class="badge badge-sup">' + (i.itemsupplier||grn.supplier) + '</span></td>' +
-  '<td><span class="unit-pill">' + fmtNum(i.qty,3) + ' ' + i.unit + '</span></td>' +
-  '<td>' + fmtCurrency(i.unitcost) + '</td>' +
-  '<td style="font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
-).join('');
+          '<tr><td style="font-weight:600;">' + i.itemname + '</td>' +
+          '<td><span class="badge badge-gray" style="font-size:10px;">' + (i.itemsupplier||grn.supplier) + '</span></td>' +
+          '<td><span class="unit-pill">' + fmtNum(i.qty,3) + ' ' + i.unit + '</span></td>' +
+          '<td>' + fmtCurrency(i.unitcost) + '</td>' +
+          '<td style="font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
+        ).join('');
 
     return '<div class="grn-card">' +
       '<div class="grn-card-head">' +
@@ -1724,16 +1710,14 @@ function renderGRN() {
         '<div style="text-align:right;">' +
           '<div style="font-family:Plus Jakarta Sans,sans-serif;font-size:22px;font-weight:800;color:var(--success);">' + fmtCurrency(grn.grandtotal) + '</div>' +
           '<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">' +
-            '<button class="btn btn-sm btn-outline" title="Print" onclick="printGRN(\'' + grn.id + '\')"><i class="fas fa-print"></i> Print</button>' +
-            '<button class="btn btn-sm" style="background:#dbeafe;color:#1e40af;" title="Edit" onclick="editGRN(\'' + grn.id + '\')"><i class="fas fa-edit"></i> Edit</button>' +
-            '<button class="btn btn-sm btn-danger" title="Delete" onclick="deleteGRN(\'' + grn.id + '\')"><i class="fas fa-trash"></i></button>' +
+            '<button class="btn btn-sm btn-outline" onclick="printGRN(\'' + grn.id + '\')"><i class="fas fa-print"></i> Print</button>' +
+            '<button class="btn btn-sm" style="background:#dbeafe;color:#1e40af;" onclick="editGRN(\'' + grn.id + '\')"><i class="fas fa-edit"></i> Edit</button>' +
+            '<button class="btn btn-sm btn-danger" onclick="deleteGRN(\'' + grn.id + '\')"><i class="fas fa-trash"></i></button>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="tbl-wrap">' +
-        '<table><thead><tr><th>Item</th><th>Supplier</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
-        '<tbody>' + tableRows + '</tbody></table>' +
-      '</div>' +
+      '<div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Supplier</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
+      '<tbody>' + tableRows + '</tbody></table></div>' +
       (grn.notes ? '<div style="margin-top:10px;padding:10px;background:#fffbeb;border-radius:8px;font-size:12px;">' + grn.notes + '</div>' : '') +
     '</div>';
   }).join('');
@@ -1741,9 +1725,7 @@ function renderGRN() {
 
 async function deleteGRN(id) {
   if (!confirm('Delete this GRN? Stock will be reverted.')) return;
-  const grn   = DB.grn.find(g=>g.id===id);
   const items = DB.grnItems.filter(i=>i.grn_id===id);
-
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingredient_id);
     if (ing) {
@@ -1752,7 +1734,6 @@ async function deleteGRN(id) {
     }
   }
   await sb.from('grn').delete().eq('id',id);
-
   DB.grn      = DB.grn.filter(g=>g.id!==id);
   DB.grnItems = DB.grnItems.filter(i=>i.grn_id!==id);
   renderGRN();
@@ -1761,122 +1742,59 @@ async function deleteGRN(id) {
   toast('GRN deleted');
 }
 
-// ── PRINT GRN ──
 function printGRN(id) {
   const grn   = DB.grn.find(g=>g.id===id);
   if (!grn) return;
   const items = DB.grnItems.filter(i=>i.grn_id===id);
-
-  // Group by supplier
   const supGroups = {};
   items.forEach(i => {
     const s = (i.itemsupplier && i.itemsupplier.trim()) ? i.itemsupplier : grn.supplier;
     if (!supGroups[s]) supGroups[s] = [];
     supGroups[s].push(i);
   });
-
   const supplierSections = Object.entries(supGroups).map(([sup, sitems]) => {
     const subTotal = sitems.reduce((s,i)=>s+safe(i.linetotal),0);
     return '<div class="sup-section">' +
       '<div class="sup-header">&#127978; ' + sup + '</div>' +
-      '<table>' +
-        '<thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
-        '<tbody>' +
-          sitems.map(i =>
-            '<tr><td>' + i.itemname + '</td>' +
-            '<td style="text-align:center;">' + fmtNum(i.qty,3) + '</td>' +
-            '<td style="text-align:center;">' + i.unit + '</td>' +
-            '<td style="text-align:right;">' + fmtCurrency(i.unitcost) + '</td>' +
-            '<td style="text-align:right;font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>'
-          ).join('') +
-        '</tbody>' +
-        '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:700;padding-top:6px;">Subtotal</td>' +
-        '<td style="text-align:right;font-weight:700;padding-top:6px;">' + fmtCurrency(subTotal) + '</td></tr></tfoot>' +
-      '</table>' +
-    '</div>';
+      '<table><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Unit Cost</th><th>Total</th></tr></thead>' +
+      '<tbody>' + sitems.map(i => '<tr><td>' + i.itemname + '</td><td style="text-align:center;">' + fmtNum(i.qty,3) + '</td><td style="text-align:center;">' + i.unit + '</td><td style="text-align:right;">' + fmtCurrency(i.unitcost) + '</td><td style="text-align:right;font-weight:700;">' + fmtCurrency(i.linetotal) + '</td></tr>').join('') + '</tbody>' +
+      '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:700;padding-top:6px;">Subtotal</td><td style="text-align:right;font-weight:700;padding-top:6px;">' + fmtCurrency(subTotal) + '</td></tr></tfoot></table></div>';
   }).join('');
-
   const pw = window.open('', '_blank');
-  pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-    '<title>GRN ' + grn.bizday + '</title>' +
-    '<style>' +
-      'body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:13px;}' +
-      'h1{font-size:22px;margin:0 0 4px;}' +
-      'h2{font-size:14px;font-weight:400;color:#555;margin:0 0 20px;}' +
-      '.meta{display:flex;gap:40px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #111;}' +
-      '.meta-item label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;display:block;}' +
-      '.meta-item strong{font-size:14px;}' +
-      '.sup-section{margin-bottom:24px;}' +
-      '.sup-header{background:#f37021;color:#fff;padding:8px 12px;font-weight:700;font-size:13px;border-radius:4px 4px 0 0;}' +
-      'table{width:100%;border-collapse:collapse;font-size:12px;}' +
-      'th{background:#f8f8f8;padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}' +
-      'td{padding:7px 10px;border-bottom:1px solid #eee;}' +
-      'tfoot td{border-top:2px solid #ddd;border-bottom:none;background:#f8f8f8;}' +
-      '.grand-total{margin-top:16px;padding:14px 16px;background:#f0fdf4;border:2px solid #059669;border-radius:6px;display:flex;justify-content:space-between;align-items:center;}' +
-      '.grand-total span{font-size:20px;font-weight:900;color:#059669;}' +
-      '.signatures{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;margin-top:40px;padding-top:20px;border-top:2px solid #ddd;}' +
-      '.sig-box{text-align:center;}' +
-      '.sig-line{border-top:1px solid #111;margin-bottom:6px;margin-top:40px;}' +
-      '.sig-label{font-size:11px;color:#555;}' +
-      '@media print{body{padding:14px;}.no-print{display:none;}}' +
-    '</style></head><body>' +
-    '<h1>GOODS RECEIPT NOTE</h1>' +
-    '<h2>GRN &mdash; ' + grn.bizday + '</h2>' +
-    '<div class="meta">' +
-      '<div class="meta-item"><label>Date</label><strong>' + fmtDate(grn.bizday) + '</strong></div>' +
-      '<div class="meta-item"><label>Main Supplier</label><strong>' + grn.supplier + '</strong></div>' +
-      (grn.invoiceno ? '<div class="meta-item"><label>Invoice #</label><strong>' + grn.invoiceno + '</strong></div>' : '') +
-      '<div class="meta-item"><label>Items</label><strong>' + items.length + '</strong></div>' +
-    '</div>' +
+  pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GRN ' + grn.bizday + '</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:13px;}h1{font-size:22px;margin:0 0 4px;}h2{font-size:14px;font-weight:400;color:#555;margin:0 0 20px;}.meta{display:flex;gap:40px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #111;}.meta-item label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;display:block;}.meta-item strong{font-size:14px;}.sup-section{margin-bottom:24px;}.sup-header{background:#f37021;color:#fff;padding:8px 12px;font-weight:700;font-size:13px;border-radius:4px 4px 0 0;}table{width:100%;border-collapse:collapse;font-size:12px;}th{background:#f8f8f8;padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase;}td{padding:7px 10px;border-bottom:1px solid #eee;}tfoot td{border-top:2px solid #ddd;border-bottom:none;background:#f8f8f8;}.grand-total{margin-top:16px;padding:14px 16px;background:#f0fdf4;border:2px solid #059669;border-radius:6px;display:flex;justify-content:space-between;align-items:center;}.grand-total span{font-size:20px;font-weight:900;color:#059669;}.signatures{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;margin-top:40px;padding-top:20px;border-top:2px solid #ddd;}.sig-box{text-align:center;}.sig-line{border-top:1px solid #111;margin-bottom:6px;margin-top:40px;}.sig-label{font-size:11px;color:#555;}@media print{body{padding:14px;}.no-print{display:none;}}</style></head><body>' +
+    '<h1>GOODS RECEIPT NOTE</h1><h2>GRN &mdash; ' + grn.bizday + '</h2>' +
+    '<div class="meta"><div class="meta-item"><label>Date</label><strong>' + fmtDate(grn.bizday) + '</strong></div><div class="meta-item"><label>Supplier</label><strong>' + grn.supplier + '</strong></div>' + (grn.invoiceno ? '<div class="meta-item"><label>Invoice #</label><strong>' + grn.invoiceno + '</strong></div>' : '') + '<div class="meta-item"><label>Items</label><strong>' + items.length + '</strong></div></div>' +
     supplierSections +
     '<div class="grand-total"><strong>GRAND TOTAL</strong><span>' + fmtCurrency(grn.grandtotal) + '</span></div>' +
     (grn.notes ? '<p style="margin-top:14px;padding:10px;background:#fffbeb;border-radius:4px;font-size:12px;"><strong>Notes:</strong> ' + grn.notes + '</p>' : '') +
-    '<div class="signatures">' +
-      '<div class="sig-box"><div class="sig-line"></div><div class="sig-label">Received By</div></div>' +
-      '<div class="sig-box"><div class="sig-line"></div><div class="sig-label">Checked By</div></div>' +
-      '<div class="sig-box"><div class="sig-line"></div><div class="sig-label">Approved By</div></div>' +
-    '</div>' +
-    '<div class="no-print" style="margin-top:24px;text-align:center;">' +
-      '<button onclick="window.print()" style="padding:10px 24px;background:#f37021;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">Print / Save as PDF</button>' +
-    '</div>' +
-  '</body></html>');
+    '<div class="signatures"><div class="sig-box"><div class="sig-line"></div><div class="sig-label">Received By</div></div><div class="sig-box"><div class="sig-line"></div><div class="sig-label">Checked By</div></div><div class="sig-box"><div class="sig-line"></div><div class="sig-label">Approved By</div></div></div>' +
+    '<div class="no-print" style="margin-top:24px;text-align:center;"><button onclick="window.print()" style="padding:10px 24px;background:#f37021;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">Print / Save as PDF</button></div>' +
+    '</body></html>');
   pw.document.close();
 }
 
-// ── EDIT GRN ──
 let _editingGRNId = null;
 
 function editGRN(id) {
   const grn   = DB.grn.find(g=>g.id===id);
   if (!grn) return;
   const items = DB.grnItems.filter(i=>i.grn_id===id);
-
   _editingGRNId = id;
-
-  // Populate form fields
   document.getElementById('grn-date').value     = grn.bizday;
   document.getElementById('grn-supplier').value = grn.supplier;
   document.getElementById('grn-invoice').value  = grn.invoiceno || '';
   document.getElementById('grn-notes').value    = grn.notes    || '';
-
-  // Change modal title
   document.querySelector('#m-grn .modal-title').textContent = 'Edit GRN';
-
-  // Populate rows
   const rowsDiv = document.getElementById('grn-rows');
   rowsDiv.innerHTML = '';
   items.forEach(item => {
     const opts = DB.ingredients.map(i =>
-      '<option value="' + i.id + '" data-unit="' + i.unit + '" data-cost="' + i.costperunit + '"' +
-      (i.id === item.ingredient_id ? ' selected' : '') + '>' + i.name + ' (' + i.unit + ')</option>'
+      '<option value="' + i.id + '"' + (i.id === item.ingredient_id ? ' selected' : '') + '>' + i.name + ' (' + i.unit + ')</option>'
     ).join('');
-
     const row = document.createElement('div');
     row.style.cssText = 'display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center;';
     row.innerHTML =
-      '<select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;">' +
-        '<option value="">Select ingredient</option>' + opts +
-      '</select>' +
+      '<select class="form-select grn-sel" onchange="grnRowChange(this)" style="font-size:12px;"><option value="">Select ingredient</option>' + opts + '</select>' +
       '<input class="form-input grn-sup" type="text" placeholder="Supplier" value="' + (item.itemsupplier||grn.supplier) + '" style="font-size:12px;">' +
       '<input class="form-input grn-qty" type="number" step="0.001" value="' + item.qty + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
       '<input class="form-input grn-ucost" type="number" step="0.01" value="' + item.unitcost + '" oninput="updateGRNRowTotal(this)" style="font-size:12px;text-align:right;">' +
@@ -1884,14 +1802,10 @@ function editGRN(id) {
       '<button class="btn btn-icon" style="background:#fee2e2;color:#991b1b;flex-shrink:0;" onclick="removeGRNRow(this)"><i class="fas fa-trash"></i></button>';
     rowsDiv.appendChild(row);
   });
-
   updateGRNGrandTotal();
-
-  // Change save button to update
   const saveBtn = document.querySelector('#m-grn button[onclick="saveGRN()"]');
   saveBtn.setAttribute('onclick', 'updateGRN()');
   saveBtn.innerHTML = '<i class="fas fa-save"></i> Update GRN';
-
   openM('m-grn');
 }
 
@@ -1901,10 +1815,9 @@ async function updateGRN() {
   const supplier= document.getElementById('grn-supplier').value.trim();
   if (!bizday || !supplier) { toast('Date and supplier required','err'); return; }
 
-  const grn   = DB.grn.find(g=>g.id===id);
+  const grn      = DB.grn.find(g=>g.id===id);
   const oldItems = DB.grnItems.filter(i=>i.grn_id===id);
 
-  // Build new items from form rows
   const rows = document.querySelectorAll('#grn-rows > div');
   const newItems = [];
   for (const row of rows) {
@@ -1915,13 +1828,12 @@ async function updateGRN() {
     const ing = DB.ingredients.find(i=>i.id===ingId);
     if (!ing) continue;
     const itemSup = row.querySelector('.grn-sup')?.value.trim() || supplier;
-newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: itemSup });
+    newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier: itemSup });
   }
   if (!newItems.length) { toast('Add at least one item','err'); return; }
 
   setSyncStatus('busy','Updating GRN...');
 
-  // Revert old stock
   for (const item of oldItems) {
     const ing = DB.ingredients.find(i=>i.id===item.ingredient_id);
     if (ing) {
@@ -1930,10 +1842,7 @@ newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier:
     }
   }
 
-  // Delete old items
   await sb.from('grn_items').delete().eq('grn_id', id);
-
-  // Update GRN header
   const grandTotal = newItems.reduce((s,i)=>s+i.qty*i.ucost,0);
   await sb.from('grn').update({
     bizday, supplier,
@@ -1942,7 +1851,6 @@ newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier:
     notes: document.getElementById('grn-notes').value.trim()
   }).eq('id', id);
 
-  // Insert new items
   const itemRows = newItems.map(i=>({
     id: uid(), grn_id: id, ingredient_id: i.ingId,
     itemname: i.name, qty: i.qty, unit: i.unit,
@@ -1951,7 +1859,6 @@ newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier:
   }));
   await sb.from('grn_items').insert(itemRows);
 
-  // Apply new stock + cost per unit
   for (const item of newItems) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
@@ -1965,13 +1872,11 @@ newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier:
     }
   }
 
-  // Update local DB
   const grnIdx = DB.grn.findIndex(g=>g.id===id);
   if (grnIdx>=0) DB.grn[grnIdx] = Object.assign(DB.grn[grnIdx], { bizday, supplier, grandtotal: grandTotal });
   DB.grnItems = DB.grnItems.filter(i=>i.grn_id!==id);
   DB.grnItems.push(...itemRows);
 
-  // Reset modal
   _editingGRNId = null;
   document.querySelector('#m-grn .modal-title').textContent = 'New GRN';
   const saveBtn = document.querySelector('#m-grn button[onclick="updateGRN()"]');
@@ -1985,75 +1890,7 @@ newItems.push({ ingId, qty, ucost, unit: ing.unit, name: ing.name, itemSupplier:
   toast('GRN updated successfully');
 }
 
-// UPLOAD GRN EXCEL
 async function handleGRNUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const bizday   = document.getElementById('quick-grn-date').value;
-  const supplier = document.getElementById('quick-grn-supplier').value.trim();
-  if (!bizday)   { toast('Set business day first','err'); return; }
-  if (!supplier) { toast('Set supplier name first','err'); return; }
-
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rows  = XLSX.utils.sheet_to_json(sheet);
-
-    const matched = [], unmatched = [];
-    rows.forEach(row => {
-      const name   = (row['ingredient_name']||row['name']||row['Name']||'').toString().trim();
-      const qty    = safe(row['qty']||row['Qty']||row['quantity']||row['Quantity']);
-      const ucost  = safe(row['unit_cost']||row['Unit Cost']||row['cost']||row['Cost']||0);
-      if (!name || qty <= 0) return;
-
-      const ing = DB.ingredients.find(i=>i.name.toLowerCase()===name.toLowerCase());
-      if (ing) {
-        matched.push({ ing, qty, ucost: ucost||safe(ing.costperunit) });
-      } else {
-        unmatched.push(name);
-      }
-    });
-
-    const prev = document.getElementById('grn-preview');
-    prev.style.display = 'block';
-    prev.innerHTML = `
-      <div style="background:#f0fdf4;border-radius:10px;padding:14px;border:2px solid #d1fae5;">
-        <strong style="color:#059669;">${matched.length} items matched</strong>
-        ${unmatched.length ? `<span style="margin-left:10px;color:var(--warning);">⚠️ ${unmatched.length} unmatched: ${unmatched.slice(0,3).join(', ')}${unmatched.length>3?'…':''}</span>` : ''}
-        <div class="tbl-wrap" style="margin-top:10px;">
-          <table>
-            <thead><tr><th>Ingredient</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>
-            <tbody>
-              ${matched.map(m=>`<tr>
-                <td>${m.ing.name}</td>
-                <td>${fmtNum(m.qty,3)} ${m.ing.unit}</td>
-                <td>${fmtCurrency(m.ucost)}</td>
-                <td>${fmtCurrency(m.qty*m.ucost)}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-        <button class="btn btn-success" style="width:100%;margin-top:12px;" onclick="confirmUploadGRN(${JSON.stringify({bizday,supplier}).replace(/"/g,"'")}, ${JSON.stringify(matched.map(m=>({id:m.ing.id,name:m.ing.name,unit:m.ing.unit,qty:m.qty,ucost:m.ucost}))).replace(/"/g,"'")})">
-          <i class="fas fa-check"></i> Confirm & Save GRN
-        </button>
-      </div>
-    `;
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-async function confirmUploadGRN(meta, items) {
-  // meta and items are already objects (passed via onclick is tricky, use stored variable instead)
-  toast('Use the button above to confirm','err');
-}
-
-// Better approach — store pending GRN in variable
-let _pendingGRN = null;
-// ─────────────────────────────────────────────
-// GRN UPLOAD — handles both Excel and PDF
-// ─────────────────────────────────────────────
-async function handleGRNUpload2(e) {
   const file = e.target.files[0];
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
@@ -2063,14 +1900,12 @@ async function handleGRNUpload2(e) {
     await parseGRNfromExcel(file);
   }
 }
-document.getElementById('quick-grn-file').onchange = handleGRNUpload2;
 
 async function parseGRNfromExcel(file) {
   const bizday   = document.getElementById('quick-grn-date').value;
   const supplier = document.getElementById('quick-grn-supplier').value.trim();
   if (!bizday)   { toast('Set business day first','err'); return; }
   if (!supplier) { toast('Set supplier name first','err'); return; }
-
   const reader = new FileReader();
   reader.onload = ev => {
     const wb   = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
@@ -2083,28 +1918,19 @@ async function parseGRNfromExcel(file) {
 }
 
 async function parseGRNfromPDF(file) {
-  if (typeof pdfjsLib === 'undefined') {
-    toast('PDF.js loading, try again in 2 seconds','err'); return;
-  }
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
+  if (typeof pdfjsLib === 'undefined') { toast('PDF.js loading, try again','err'); return; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   setSyncStatus('busy', 'Reading PDF...');
-
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-  // Extract all text grouped into lines
   let allLines = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const page    = await pdf.getPage(p);
     const content = await page.getTextContent();
-
-    const sorted = content.items.sort((a,b) => {
+    const sorted  = content.items.sort((a,b) => {
       const dy = b.transform[5] - a.transform[5];
       return Math.abs(dy) > 3 ? dy : a.transform[4] - b.transform[4];
     });
-
     let lineMap = {};
     sorted.forEach(item => {
       const y = Math.round(item.transform[5]);
@@ -2116,70 +1942,37 @@ async function parseGRNfromPDF(file) {
       if (line) allLines.push(line);
     });
   }
-
-  // Detect metadata
-  let grnNumber = '', invoiceno = '', detectedDate = '', detectedSupplier = '';
+  let invoiceno = '', detectedDate = '', detectedSupplier = '';
   allLines.forEach(line => {
-    const grnM = line.match(/GRN[-\s]?([\w-]+\d+)/i);
-    if (grnM && !grnNumber) grnNumber = grnM[0];
-
     const invM = line.match(/Invoice[:\s]+(\w+)/i);
     if (invM && !invoiceno) invoiceno = invM[1];
-
     const datM = line.match(/Date[:\s]+(\d{1,2}\s+\w+\s+\d{4})/i);
-    if (datM && !detectedDate) {
-      const d = new Date(datM[1]);
-      if (!isNaN(d)) detectedDate = d.toISOString().slice(0,10);
-    }
+    if (datM && !detectedDate) { const d = new Date(datM[1]); if (!isNaN(d)) detectedDate = d.toISOString().slice(0,10); }
     const supM = line.match(/Supplier[:\s]+(.+)/i);
     if (supM && !detectedSupplier) detectedSupplier = supM[1].trim();
   });
-
-  // Auto-fill date/supplier fields if blank
   const dateField = document.getElementById('quick-grn-date');
   if (!dateField.value && detectedDate) dateField.value = detectedDate;
   const bizday = dateField.value || bizDayToday();
-
   const supplierField = document.getElementById('quick-grn-supplier');
   if (!supplierField.value && detectedSupplier) supplierField.value = detectedSupplier;
   const supplier = supplierField.value.trim() || detectedSupplier || 'Unknown';
-
-  // Parse item rows — your PDF format:
-  // "Item Name   qty   unit   Rs cost   Rs total"
   const matched = [], unmatched = [];
   let currentSupplier = supplier;
-
   allLines.forEach(line => {
-    // Supplier section header: emoji + name
-    if (line.includes('\uD83C\uDFEA') || line.match(/^\s*[^\w]*Alnoor|Dawn|Hafiz|Warehouse/i)) {
-      const cleaned = line.replace(/[\uD83C\uDFEA\u{1F3EA}]/gu, '').replace(/Subtotal.*/i,'').trim();
-      if (cleaned.length > 0 && cleaned.length < 50) { currentSupplier = cleaned; return; }
-    }
-
-    // Skip non-item lines
-    if (/^(Item|Qty|Unit|Cost|Total|GRAND|Received|Checked|Approved|GRN|Date:|Supplier:|Invoice:|about:blank|Name & Sig|_{3})/i.test(line.trim())) return;
-
-    // Match line: <name> <qty> <unit> Rs <cost> Rs <total>
+    if (/^(Item|Qty|Unit|Cost|Total|GRAND|Received|Checked|Approved|GRN|Date:|Supplier:|Invoice:)/i.test(line.trim())) return;
     const m = line.match(/^(.+?)\s+([\d]+[\d,]*\.?\d*)\s+(g|ml|l|kg|pcs|pkt|box|bottle)\s+Rs\s+([\d,]+\.?\d*)\s+Rs\s+([\d,]+\.?\d*)/i);
     if (!m) return;
-
     const name  = m[1].trim();
     const qty   = parseFloat(m[2].replace(/,/g,''));
     const ucost = parseFloat(m[4].replace(/,/g,''));
     if (!name || qty <= 0) return;
-
-    // Match ingredient — exact then fuzzy
     const ing = DB.ingredients.find(i => i.name.toLowerCase() === name.toLowerCase())
              || DB.ingredients.find(i => i.name.toLowerCase().includes(name.toLowerCase()))
              || DB.ingredients.find(i => name.toLowerCase().includes(i.name.toLowerCase()));
-
-    if (ing) {
-      matched.push({ ing, qty, ucost, itemSupplier: currentSupplier });
-    } else {
-      unmatched.push(name);
-    }
+    if (ing) matched.push({ ing, qty, ucost, itemSupplier: currentSupplier });
+    else unmatched.push(name);
   });
-
   _pendingGRN = { bizday, supplier, matched, invoiceno };
   setSyncStatus('ok', 'PDF parsed');
   showGRNPreview(matched, unmatched, bizday, supplier, invoiceno);
@@ -2200,6 +1993,8 @@ function parseGRNRows(rows) {
   return { matched, unmatched };
 }
 
+let _pendingGRN = null;
+
 function showGRNPreview(matched, unmatched, bizday, supplier, invoiceno) {
   _pendingGRN = Object.assign(_pendingGRN||{}, { bizday, supplier, matched, invoiceno });
   const grandTotal = matched.reduce((s,m)=>s+m.qty*m.ucost, 0);
@@ -2207,41 +2002,29 @@ function showGRNPreview(matched, unmatched, bizday, supplier, invoiceno) {
   prev.style.display = 'block';
   prev.innerHTML =
     '<div style="background:#f0fdf4;border-radius:10px;padding:14px;border:2px solid #d1fae5;">' +
-    '<div style="margin-bottom:10px;">' +
-    '<strong style="color:#059669;">' + matched.length + ' items matched</strong>' +
+    '<div style="margin-bottom:10px;"><strong style="color:#059669;">' + matched.length + ' items matched</strong>' +
     (invoiceno ? ' &nbsp;&#183;&nbsp; Invoice: <strong>' + invoiceno + '</strong>' : '') +
-    (unmatched.length ? '<br><span style="color:var(--warning);font-size:12px;">Not matched (skipped): ' + unmatched.slice(0,6).join(', ') + (unmatched.length>6?' + '+(unmatched.length-6)+' more':'') + '</span>' : '') +
-    '</div>' +
-    '<div class="tbl-wrap" style="max-height:260px;overflow-y:auto;"><table>' +
-    '<thead><tr><th>Ingredient</th><th>Qty</th><th>Unit Cost</th><th>Line Total</th><th>Supplier</th></tr></thead><tbody>' +
+    (unmatched.length ? '<br><span style="color:var(--warning);font-size:12px;">Not matched: ' + unmatched.slice(0,6).join(', ') + '</span>' : '') +
+    '</div><div class="tbl-wrap" style="max-height:260px;overflow-y:auto;"><table>' +
+    '<thead><tr><th>Ingredient</th><th>Qty</th><th>Unit Cost</th><th>Line Total</th></tr></thead><tbody>' +
     matched.map(function(m) {
-      return '<tr><td style="font-weight:600;">' + m.ing.name + '</td>' +
-        '<td>' + fmtNum(m.qty,3) + ' ' + m.ing.unit + '</td>' +
-        '<td>' + fmtCurrency(m.ucost) + '</td>' +
-        '<td style="font-weight:700;">' + fmtCurrency(m.qty*m.ucost) + '</td>' +
-        '<td style="font-size:11px;color:var(--mid);">' + (m.itemSupplier||supplier) + '</td></tr>';
-    }).join('') +
-    '</tbody></table></div>' +
+      return '<tr><td style="font-weight:600;">' + m.ing.name + '</td><td>' + fmtNum(m.qty,3) + ' ' + m.ing.unit + '</td><td>' + fmtCurrency(m.ucost) + '</td><td style="font-weight:700;">' + fmtCurrency(m.qty*m.ucost) + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
     '<div style="text-align:right;margin-top:10px;font-weight:800;font-size:18px;color:#059669;">Grand Total: ' + fmtCurrency(grandTotal) + '</div>' +
-    '<button class="btn btn-success" style="width:100%;margin-top:12px;" onclick="commitUploadGRN()">' +
-    '<i class="fas fa-check"></i> Confirm &amp; Save GRN (' + matched.length + ' items)</button></div>';
+    '<button class="btn btn-success" style="width:100%;margin-top:12px;" onclick="commitUploadGRN()"><i class="fas fa-check"></i> Confirm &amp; Save GRN (' + matched.length + ' items)</button></div>';
 }
 
 async function commitUploadGRN() {
   if (!_pendingGRN) return;
   const { bizday, supplier, matched } = _pendingGRN;
   if (!matched.length) { toast('No items to save','err'); return; }
-
   const grnId = uid();
   const grandTotal = matched.reduce((s,m)=>s+m.qty*m.ucost,0);
-
   setSyncStatus('busy','Saving GRN…');
-
   const { error: hErr } = await sb.from('grn').insert({
-    id: grnId, bizday, supplier, invoiceno:'', grandtotal: grandTotal, notes:'Uploaded from Excel', createdat: new Date().toISOString()
+    id: grnId, bizday, supplier, invoiceno:'', grandtotal: grandTotal, notes:'Uploaded', createdat: new Date().toISOString()
   });
   if (hErr) { toast('❌ '+hErr.message,'err'); return; }
-
   const itemRows = matched.map(m=>({
     id: uid(), grn_id: grnId, ingredient_id: m.ing.id,
     itemname: m.ing.name, qty: m.qty, unit: m.ing.unit,
@@ -2250,7 +2033,6 @@ async function commitUploadGRN() {
   }));
   const { error: iErr } = await sb.from('grn_items').insert(itemRows);
   if (iErr) { toast('❌ '+iErr.message,'err'); return; }
-
   for (const m of matched) {
     m.ing.currentstock = safe(m.ing.currentstock) + m.qty;
     if (m.ucost > 0) m.ing.costperunit = m.ucost;
@@ -2260,18 +2042,13 @@ async function commitUploadGRN() {
       updatedat:    new Date().toISOString()
     }).eq('id', m.ing.id);
   }
-
   DB.grn.unshift({ id:grnId, bizday, supplier, grandtotal:grandTotal, invoiceno:'', notes:'' });
   DB.grnItems.push(...itemRows);
   _pendingGRN = null;
-
   document.getElementById('grn-upload-body').style.display = 'none';
   document.getElementById('grn-preview').style.display = 'none';
   document.getElementById('quick-grn-file').value = '';
-
-  renderGRN();
-  renderDashboard();
-  renderIngredients();
+  renderGRN(); renderDashboard(); renderIngredients();
   setSyncStatus('ok','Synced');
   toast(`✅ GRN uploaded · ${itemRows.length} items`);
 }
@@ -2286,7 +2063,6 @@ function getGRNTodayForIng(ingId, bizday) {
 }
 
 function getOpeningForIng(ing, bizday) {
-  // Look for yesterday's closing physical count
   const prevDate = new Date(bizday);
   prevDate.setDate(prevDate.getDate()-1);
   const prevStr = prevDate.toISOString().slice(0,10);
@@ -2295,7 +2071,6 @@ function getOpeningForIng(ing, bizday) {
     const item = DB.closingItems.find(i=>i.closing_id===prevClose.id && i.ingredient_id===ing.id);
     if (item) return safe(item.physical);
   }
-  // Fallback to ingredient's opening stock
   return safe(ing.openingstock);
 }
 
@@ -2342,10 +2117,8 @@ async function saveManualClosing() {
   if (!bizday)   { toast('Business day required','err'); return; }
   if (!closedby) { toast('Closed by required','err'); return; }
 
-  // Check duplicate
   if (DB.closing.some(c=>c.bizday===bizday)) {
     if (!confirm(`Closing for ${fmtDate(bizday)} already exists. Overwrite?`)) return;
-    // Delete old
     const old = DB.closing.find(c=>c.bizday===bizday);
     await sb.from('closing').delete().eq('id',old.id);
     DB.closing    = DB.closing.filter(c=>c.bizday!==bizday);
@@ -2366,20 +2139,11 @@ async function saveManualClosing() {
     const cpu       = safe(ing.costperunit);
     const cost      = consumed * cpu;
     if (consumed > 0) totalCost += cost;
-
     items.push({
-      id:            uid(),
-      closing_id:    closingId,
-      ingredient_id: ing.id,
-      itemname:      ing.name,
-      unit:          ing.unit,
-      opening,
-      grntoday:      grnToday,
-      available,
-      physical,
-      consumed,
-      costperunit:   cpu,
-      consumptioncost: cost
+      id: uid(), closing_id: closingId, ingredient_id: ing.id,
+      itemname: ing.name, unit: ing.unit,
+      opening, grntoday: grnToday, available, physical,
+      consumed, costperunit: cpu, consumptioncost: cost
     });
   }
 
@@ -2390,14 +2154,11 @@ async function saveManualClosing() {
   });
   if (hErr) { toast('❌ '+hErr.message,'err'); return; }
 
-  // Batch insert closing items
-  const batchSize = 100;
-  for (let i=0;i<items.length;i+=batchSize) {
-    const { error } = await sb.from('closing_items').insert(items.slice(i,i+batchSize));
+  for (let i=0;i<items.length;i+=100) {
+    const { error } = await sb.from('closing_items').insert(items.slice(i,i+100));
     if (error) { toast('❌ Items: '+error.message,'err'); return; }
   }
 
-  // Update ingredient stock to physical counts
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingredient_id);
     if (ing) {
@@ -2405,10 +2166,8 @@ async function saveManualClosing() {
       ing.openingstock = item.physical;
       ing.openingdate  = bizday;
       await sb.from('ingredients').update({
-        currentstock: item.physical,
-        openingstock: item.physical,
-        openingdate:  bizday,
-        updatedat:    new Date().toISOString()
+        currentstock: item.physical, openingstock: item.physical,
+        openingdate: bizday, updatedat: new Date().toISOString()
       }).eq('id', ing.id);
     }
   }
@@ -2424,7 +2183,6 @@ async function saveManualClosing() {
   toast(`🌙 Night closing saved · ${fmtCurrency(totalCost)} consumed`);
 }
 
-// UPLOAD CLOSING EXCEL
 let _pendingClosing = null;
 async function handleClosingUpload(e) {
   const file = e.target.files[0];
@@ -2433,12 +2191,10 @@ async function handleClosingUpload(e) {
   const closedby = document.getElementById('quick-closing-by').value.trim();
   if (!bizday)   { toast('Set business day first','err'); return; }
   if (!closedby) { toast('Set closed-by name','err'); return; }
-
   const reader = new FileReader();
   reader.onload = ev => {
     const wb = XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-
     const counts = {}, unmatched = [];
     rows.forEach(row => {
       const name = (row['ingredient_name']||row['name']||row['Name']||'').toString().trim();
@@ -2448,16 +2204,14 @@ async function handleClosingUpload(e) {
       if (ing) counts[ing.id] = { ing, phys };
       else unmatched.push(name);
     });
-
     _pendingClosing = { bizday, closedby, counts };
-
     const preview = document.getElementById('closing-preview');
     preview.style.display = 'block';
     const matched = Object.values(counts);
     preview.innerHTML = `
       <div style="background:#fffbeb;border-radius:10px;padding:14px;border:2px solid #fde68a;">
         <strong style="color:#b45309;">${matched.length} items found</strong>
-        ${unmatched.length ? `<br><span style="color:var(--warning);font-size:12px;">⚠️ Unmatched (will use available as physical): ${unmatched.join(', ')}</span>` : ''}
+        ${unmatched.length ? `<br><span style="color:var(--warning);font-size:12px;">⚠️ Unmatched: ${unmatched.join(', ')}</span>` : ''}
         <div class="tbl-wrap" style="margin-top:10px;max-height:200px;overflow-y:auto;">
           <table>
             <thead><tr><th>Ingredient</th><th>Physical Count</th><th>Unit</th></tr></thead>
@@ -2483,8 +2237,6 @@ async function handleClosingUpload(e) {
 async function commitUploadClosing() {
   if (!_pendingClosing) return;
   const { bizday, closedby, counts } = _pendingClosing;
-
-  // Same logic as manual closing but use uploaded physical counts
   if (DB.closing.some(c=>c.bizday===bizday)) {
     if (!confirm(`Closing for ${fmtDate(bizday)} already exists. Overwrite?`)) return;
     const old = DB.closing.find(c=>c.bizday===bizday);
@@ -2492,11 +2244,9 @@ async function commitUploadClosing() {
     DB.closing      = DB.closing.filter(c=>c.bizday!==bizday);
     DB.closingItems = DB.closingItems.filter(i=>i.closing_id!==old.id);
   }
-
   const closingId = uid();
   let totalCost = 0;
   const items = [];
-
   for (const ing of DB.ingredients) {
     const opening   = getOpeningForIng(ing, bizday);
     const grnToday  = getGRNTodayForIng(ing.id, bizday);
@@ -2507,7 +2257,6 @@ async function commitUploadClosing() {
     const cpu       = safe(ing.costperunit);
     const cost      = consumed * cpu;
     if (consumed > 0) totalCost += cost;
-
     items.push({
       id: uid(), closing_id: closingId, ingredient_id: ing.id,
       itemname: ing.name, unit: ing.unit,
@@ -2515,19 +2264,15 @@ async function commitUploadClosing() {
       consumed, costperunit: cpu, consumptioncost: cost
     });
   }
-
   setSyncStatus('busy','Saving closing…');
-
   const { error: hErr } = await sb.from('closing').insert({
     id: closingId, bizday, closedby, totalcost: totalCost, createdat: new Date().toISOString()
   });
   if (hErr) { toast('❌ '+hErr.message,'err'); return; }
-
   for (let i=0;i<items.length;i+=100) {
     const { error } = await sb.from('closing_items').insert(items.slice(i,i+100));
     if (error) { toast('❌ '+error.message,'err'); return; }
   }
-
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingredient_id);
     if (ing) {
@@ -2540,22 +2285,20 @@ async function commitUploadClosing() {
       }).eq('id', ing.id);
     }
   }
-
   DB.closing.unshift({ id:closingId, bizday, closedby, totalcost:totalCost });
   DB.closingItems.push(...items);
   _pendingClosing = null;
-
   document.getElementById('closing-upload-body').style.display = 'none';
   document.getElementById('closing-preview').style.display = 'none';
   document.getElementById('quick-closing-file').value = '';
-
-  renderDashboard();
-  renderIngredients();
-  renderClosingHistory();
+  renderDashboard(); renderIngredients(); renderClosingHistory();
   setSyncStatus('ok','Synced');
   toast(`🌙 Closing uploaded · ${fmtCurrency(totalCost)} consumed`);
 }
 
+// ─────────────────────────────────────────────
+// CLOSING REPORT — VIEW
+// ─────────────────────────────────────────────
 function renderClosingReport() {
   const date = document.getElementById('cl-filter-date')?.value;
   const div  = document.getElementById('closing-report');
@@ -2565,7 +2308,7 @@ function renderClosingReport() {
   }
   const closing = DB.closing.find(c => c.bizday === date);
   if (!closing) {
-    div.innerHTML = `<div class="empty"><i class="fas fa-moon"></i><p>No closing found for ${fmtDate(date)}. Do a closing first.</p></div>`;
+    div.innerHTML = `<div class="empty"><i class="fas fa-moon"></i><p>No closing found for ${fmtDate(date)}.</p></div>`;
     return;
   }
   const items = DB.closingItems.filter(i => i.closing_id === closing.id);
@@ -2575,40 +2318,55 @@ function renderClosingReport() {
       <div class="stat ok"><div class="stat-label">Business Day</div><div class="stat-val" style="font-size:16px;">${fmtDate(closing.bizday)}</div></div>
       <div class="stat"><div class="stat-label">Closed By</div><div class="stat-val" style="font-size:16px;">${closing.closedby}</div></div>
       <div class="stat warn"><div class="stat-label">Items Consumed</div><div class="stat-val">${items.filter(i=>i.consumed>0).length}</div></div>
-      <div class="stat bad" id="closing-report-total-stat">
+      <div class="stat bad">
         <div class="stat-label">Total Consumption Cost</div>
         <div class="stat-val" id="closing-report-total-val" style="font-size:18px;">${fmtCurrency(closing.totalcost)}</div>
       </div>
     </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;gap:8px;" id="closing-report-actions">
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;gap:8px;flex-wrap:wrap;" id="closing-report-actions">
       <button class="btn btn-sm btn-purple" onclick="startEditClosingReport('${closing.id}')">
-        <i class="fas fa-edit"></i> Edit Physical Counts
+        <i class="fas fa-pencil-alt"></i> Edit Report
       </button>
     </div>
+
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th>Ingredient</th><th>Opening</th><th>GRN+</th><th>Available</th>
-            <th>Physical</th><th>Consumed</th><th>Cost/Unit</th><th>Cost</th>
+            <th>Ingredient</th>
+            <th style="text-align:center;">Opening</th>
+            <th style="text-align:center;">GRN+</th>
+            <th style="text-align:center;">Available</th>
+            <th style="text-align:center;">Physical</th>
+            <th style="text-align:center;">Consumed</th>
+            <th style="text-align:center;">Cost/Unit</th>
+            <th style="text-align:right;">Cost</th>
           </tr>
         </thead>
         <tbody id="closing-report-tbody">
           ${items.map(i => `<tr>
-            <td style="font-weight:600;">${i.itemname}</td>
-            <td style="color:#1e40af;">${fmtNum(i.opening,3)}</td>
-            <td style="color:var(--success);">+${fmtNum(i.grntoday,3)}</td>
-            <td style="font-weight:700;">${fmtNum(i.available,3)}</td>
-            <td style="color:var(--brand);font-weight:700;">${fmtNum(i.physical,3)}</td>
-            <td style="font-weight:900;color:var(--danger);">${fmtNum(i.consumed,3)}</td>
-            <td>${fmtCurrency(i.costperunit)}</td>
-            <td style="font-weight:700;">${i.consumed>0 ? fmtCurrency(i.consumptioncost) : '—'}</td>
+            <td style="font-weight:600;">${i.itemname}<br><span class="unit-pill">${i.unit}</span></td>
+            <td style="text-align:center;color:#1e40af;">${fmtNum(i.opening,3)}</td>
+            <td style="text-align:center;color:var(--success);">+${fmtNum(i.grntoday,3)}</td>
+            <td style="text-align:center;font-weight:700;">${fmtNum(i.available,3)}</td>
+            <td style="text-align:center;color:var(--brand);font-weight:700;">${fmtNum(i.physical,3)}</td>
+            <td style="text-align:center;font-weight:900;color:var(--danger);">${fmtNum(i.consumed,3)}</td>
+            <td style="text-align:center;">${fmtCurrency(i.costperunit)}</td>
+            <td style="text-align:right;font-weight:700;">${i.consumed>0 ? fmtCurrency(i.consumptioncost) : '—'}</td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>
   `;
 }
+
+// ─────────────────────────────────────────────
+// CLOSING REPORT — FULL ROW EDIT
+// Every field is editable: Opening, GRN+, Physical, Cost/Unit
+// Available and Consumed auto-recalculate live
+// On save: DB rows updated, ingredient stock synced to new physical
+// ─────────────────────────────────────────────
 function startEditClosingReport(closingId) {
   const closing = DB.closing.find(c => c.id === closingId);
   if (!closing) return;
@@ -2617,72 +2375,150 @@ function startEditClosingReport(closingId) {
   const actionsDiv = document.getElementById('closing-report-actions');
   if (actionsDiv) {
     actionsDiv.innerHTML = `
-      <div class="edit-mode-banner" style="flex:1;margin-right:8px;">
-        <i class="fas fa-pencil-alt"></i>
-        Edit mode — change physical counts below. Consumed & cost recalculate live.
+      <div style="flex:1;margin-right:8px;">
+        <div class="edit-mode-banner">
+          <i class="fas fa-pencil-alt"></i>
+          Full edit mode active — change any value below. Available &amp; Consumed recalculate live. Stock updates on save.
+        </div>
+        <div class="edit-legend">
+          <div class="edit-legend-item"><div class="edit-legend-dot" style="background:#3b82f6;"></div> Opening (blue)</div>
+          <div class="edit-legend-item"><div class="edit-legend-dot" style="background:#059669;"></div> GRN+ (green)</div>
+          <div class="edit-legend-item"><div class="edit-legend-dot" style="background:#7c3aed;"></div> Physical (purple)</div>
+          <div class="edit-legend-item"><div class="edit-legend-dot" style="background:#d97706;"></div> Cost/Unit (amber)</div>
+          <div class="edit-legend-item" style="color:#64748b;"><i class="fas fa-calculator" style="font-size:10px;margin-right:3px;"></i> Available &amp; Consumed = auto-calculated</div>
+        </div>
       </div>
-      <button class="btn btn-sm btn-outline" onclick="renderClosingReport()">
-        <i class="fas fa-times"></i> Cancel
-      </button>
-      <button class="btn btn-sm btn-purple" onclick="saveEditedClosingReport('${closingId}')">
-        <i class="fas fa-save"></i> Save Changes
-      </button>
+      <div style="display:flex;gap:8px;align-self:flex-start;margin-top:4px;">
+        <button class="btn btn-sm btn-outline" onclick="renderClosingReport()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button class="btn btn-sm btn-purple" onclick="saveEditedClosingReport('${closingId}')">
+          <i class="fas fa-save"></i> Save All Changes
+        </button>
+      </div>
     `;
+    actionsDiv.style.flexWrap = 'wrap';
+    actionsDiv.style.alignItems = 'flex-start';
   }
 
   const tbody = document.getElementById('closing-report-tbody');
   if (!tbody) return;
 
   tbody.innerHTML = items.map(item => {
-    const avail = safe(item.available);
-    return `<tr id="edit-row-${item.id}" data-item-id="${item.id}" data-available="${avail}" data-cpu="${safe(item.costperunit)}">
-      <td style="font-weight:600;">${item.itemname}</td>
-      <td style="color:#1e40af;">${fmtNum(item.opening, 3)}</td>
-      <td style="color:var(--success);">+${fmtNum(item.grntoday, 3)}</td>
-      <td style="font-weight:700;">${fmtNum(avail, 3)}</td>
-      <td>
-        <input
-          class="edit-phys-input"
-          type="number"
-          step="0.001"
-          min="0"
-          id="edit-phys-${item.id}"
-          value="${fmtNum(item.physical, 3)}"
-          oninput="recalcEditRow('${item.id}')"
-          title="Edit physical count for ${item.itemname}"
-        >
+    const opening  = safe(item.opening);
+    const grnToday = safe(item.grntoday);
+    const avail    = opening + grnToday;
+    const cpu      = safe(item.costperunit);
+    const physical = safe(item.physical);
+    const consumed = safe(item.consumed);
+    const cost     = safe(item.consumptioncost);
+
+    return `<tr id="edit-row-${item.id}" data-item-id="${item.id}" data-ingredient-id="${item.ingredient_id || ''}">
+      <td style="font-weight:600;min-width:120px;">
+        ${item.itemname}<br>
+        <span class="unit-pill">${item.unit}</span>
       </td>
-      <td id="edit-consumed-${item.id}" style="font-weight:900;color:var(--danger);">${fmtNum(item.consumed, 3)}</td>
-      <td>${fmtCurrency(item.costperunit)}</td>
-      <td id="edit-cost-${item.id}" style="font-weight:700;">${item.consumed > 0 ? fmtCurrency(item.consumptioncost) : '—'}</td>
+
+      <td style="text-align:center;">
+        <input class="edit-phys-input inp-opening"
+          type="number" step="0.001" min="0"
+          id="edit-opening-${item.id}"
+          value="${fmtNum(opening, 3)}"
+          oninput="recalcEditRow('${item.id}')"
+          title="Opening stock for ${item.itemname}">
+      </td>
+
+      <td style="text-align:center;">
+        <input class="edit-phys-input inp-grn"
+          type="number" step="0.001" min="0"
+          id="edit-grn-${item.id}"
+          value="${fmtNum(grnToday, 3)}"
+          oninput="recalcEditRow('${item.id}')"
+          title="GRN received today for ${item.itemname}">
+      </td>
+
+      <td style="text-align:center;">
+        <span id="edit-avail-${item.id}"
+          style="display:inline-block;padding:5px 10px;border-radius:8px;font-weight:800;font-size:13px;background:#f1f5f9;color:#1e293b;border:2px solid #cbd5e1;min-width:72px;text-align:center;">
+          ${fmtNum(avail, 3)}
+        </span>
+      </td>
+
+      <td style="text-align:center;">
+        <input class="edit-phys-input"
+          type="number" step="0.001" min="0"
+          id="edit-phys-${item.id}"
+          value="${fmtNum(physical, 3)}"
+          oninput="recalcEditRow('${item.id}')"
+          title="Physical count for ${item.itemname}">
+      </td>
+
+      <td style="text-align:center;">
+        <span id="edit-consumed-${item.id}"
+          style="display:inline-block;padding:5px 10px;border-radius:8px;font-weight:900;font-size:13px;background:#fef2f2;color:var(--danger);border:2px solid #fecaca;min-width:72px;text-align:center;">
+          ${fmtNum(consumed, 3)}
+        </span>
+      </td>
+
+      <td style="text-align:center;">
+        <input class="edit-phys-input inp-cpu"
+          type="number" step="0.01" min="0"
+          id="edit-cpu-${item.id}"
+          value="${fmtNum(cpu, 2)}"
+          oninput="recalcEditRow('${item.id}')"
+          title="Cost per unit for ${item.itemname}"
+          style="width:100px;">
+      </td>
+
+      <td style="text-align:right;">
+        <span id="edit-cost-${item.id}" style="font-weight:700;">
+          ${consumed > 0 ? fmtCurrency(cost) : '—'}
+        </span>
+      </td>
     </tr>`;
   }).join('');
 }
 
 function recalcEditRow(itemId) {
-  const row = document.getElementById('edit-row-' + itemId);
-  if (!row) return;
-  const avail    = safe(row.dataset.available);
-  const cpu      = safe(row.dataset.cpu);
-  const physEl   = document.getElementById('edit-phys-' + itemId);
+  const openingEl  = document.getElementById('edit-opening-'  + itemId);
+  const grnEl      = document.getElementById('edit-grn-'      + itemId);
+  const physEl     = document.getElementById('edit-phys-'     + itemId);
+  const cpuEl      = document.getElementById('edit-cpu-'      + itemId);
+  const availEl    = document.getElementById('edit-avail-'    + itemId);
+  const consumedEl = document.getElementById('edit-consumed-' + itemId);
+  const costEl     = document.getElementById('edit-cost-'     + itemId);
+
+  if (!physEl) return;
+
+  const opening  = safe(openingEl?.value ?? 0);
+  const grn      = safe(grnEl?.value ?? 0);
+  const avail    = opening + grn;
   const phys     = physEl.value !== '' ? safe(physEl.value) : avail;
   const consumed = Math.max(0, avail - phys);
+  const cpu      = safe(cpuEl?.value ?? 0);
   const cost     = consumed * cpu;
 
-  document.getElementById('edit-consumed-' + itemId).textContent = fmtNum(consumed, 3);
-  document.getElementById('edit-cost-'     + itemId).textContent = consumed > 0 ? fmtCurrency(cost) : '—';
-  row.classList.add('edit-row-changed');
+  if (availEl)    availEl.textContent    = fmtNum(avail, 3);
+  if (consumedEl) consumedEl.textContent = fmtNum(consumed, 3);
+  if (costEl)     costEl.textContent     = consumed > 0 ? fmtCurrency(cost) : '—';
 
-  // Update running total live
+  // Highlight changed row
+  const row = document.getElementById('edit-row-' + itemId);
+  if (row) { row.style.background = '#fdf4ff'; }
+
+  // Recalc running total live
   let runningTotal = 0;
-  document.querySelectorAll('[id^="edit-row-"]').forEach(r => {
-    const costEl = document.getElementById('edit-cost-' + r.dataset.itemId);
-    if (costEl && costEl.textContent !== '—') {
-      runningTotal += parseFloat(costEl.textContent.replace('Rs ','').replace(/,/g,'')) || 0;
+  document.querySelectorAll('[id^="edit-cost-"]').forEach(el => {
+    if (el.textContent !== '—') {
+      runningTotal += parseFloat(el.textContent.replace('Rs ', '').replace(/,/g, '')) || 0;
     }
   });
   const totalVal = document.getElementById('closing-report-total-val');
-  if (totalVal) { totalVal.textContent = fmtCurrency(runningTotal); totalVal.style.color = '#dc2626'; }
+  if (totalVal) {
+    totalVal.textContent = fmtCurrency(runningTotal);
+    totalVal.style.color = '#dc2626';
+    totalVal.style.transition = 'color 0.3s';
+  }
 }
 
 async function saveEditedClosingReport(closingId) {
@@ -2690,41 +2526,68 @@ async function saveEditedClosingReport(closingId) {
   if (!closing) return;
   const oldItems = DB.closingItems.filter(i => i.closing_id === closingId);
 
+  if (!confirm('Save all changes? Ingredient stock levels and cost per unit will be updated to match the new values.')) return;
+
   setSyncStatus('busy', 'Saving edits…');
 
   let newTotalCost = 0;
   const updatedItems = [];
 
   for (const item of oldItems) {
-    const physEl   = document.getElementById('edit-phys-' + item.id);
-    const physical = physEl ? safe(physEl.value) : safe(item.physical);
-    const consumed = Math.max(0, safe(item.available) - physical);
-    const cost     = consumed * safe(item.costperunit);
-    newTotalCost  += cost;
-    updatedItems.push({ ...item, physical, consumed, consumptioncost: cost });
+    const openingEl = document.getElementById('edit-opening-' + item.id);
+    const grnEl     = document.getElementById('edit-grn-'     + item.id);
+    const physEl    = document.getElementById('edit-phys-'    + item.id);
+    const cpuEl     = document.getElementById('edit-cpu-'     + item.id);
+
+    const newOpening  = openingEl ? safe(openingEl.value) : safe(item.opening);
+    const newGrn      = grnEl     ? safe(grnEl.value)     : safe(item.grntoday);
+    const newAvail    = newOpening + newGrn;
+    const newPhysical = physEl    ? safe(physEl.value)    : safe(item.physical);
+    const newConsumed = Math.max(0, newAvail - newPhysical);
+    const newCpu      = cpuEl     ? safe(cpuEl.value)     : safe(item.costperunit);
+    const newCost     = newConsumed * newCpu;
+    newTotalCost += newCost;
+
+    updatedItems.push({
+      ...item,
+      opening:         newOpening,
+      grntoday:        newGrn,
+      available:       newAvail,
+      physical:        newPhysical,
+      consumed:        newConsumed,
+      costperunit:     newCpu,
+      consumptioncost: newCost
+    });
 
     const { error } = await sb.from('closing_items').update({
-      physical, consumed, consumptioncost: cost
+      opening:         newOpening,
+      grntoday:        newGrn,
+      available:       newAvail,
+      physical:        newPhysical,
+      consumed:        newConsumed,
+      costperunit:     newCpu,
+      consumptioncost: newCost
     }).eq('id', item.id);
     if (error) { toast('❌ ' + error.message, 'err'); setSyncStatus('ok', ''); return; }
   }
 
+  // Update closing header total
   const { error: hErr } = await sb.from('closing').update({ totalcost: newTotalCost }).eq('id', closingId);
   if (hErr) { toast('❌ ' + hErr.message, 'err'); setSyncStatus('ok', ''); return; }
 
-  // If latest closing, sync ingredient stock too
-  const isLatest = [...DB.closing].sort((a,b) => b.bizday.localeCompare(a.bizday))[0]?.id === closingId;
-  if (isLatest) {
-    for (const item of updatedItems) {
-      const ing = DB.ingredients.find(i => i.id === item.ingredient_id);
-      if (ing) {
-        ing.currentstock = item.physical;
-        ing.openingstock = item.physical;
-        await sb.from('ingredients').update({
-          currentstock: item.physical, openingstock: item.physical,
-          updatedat: new Date().toISOString()
-        }).eq('id', ing.id);
-      }
+  // Always sync ingredient stock to new physical + new cost per unit
+  for (const item of updatedItems) {
+    const ing = DB.ingredients.find(i => i.id === item.ingredient_id);
+    if (ing) {
+      ing.currentstock = item.physical;
+      ing.openingstock = item.physical;
+      if (item.costperunit > 0) ing.costperunit = item.costperunit;
+      await sb.from('ingredients').update({
+        currentstock: item.physical,
+        openingstock: item.physical,
+        costperunit:  item.costperunit > 0 ? item.costperunit : ing.costperunit,
+        updatedat:    new Date().toISOString()
+      }).eq('id', ing.id);
     }
   }
 
@@ -2736,12 +2599,15 @@ async function saveEditedClosingReport(closingId) {
   });
 
   setSyncStatus('ok', 'Synced');
-  toast(`✅ Closing corrected · ${fmtCurrency(newTotalCost)} total`);
+  toast(`✅ Closing corrected · ${fmtCurrency(newTotalCost)} total · stock synced`);
   renderClosingReport();
   renderDashboard();
-  if (isLatest) renderIngredients();
+  renderIngredients();
 }
 
+// ─────────────────────────────────────────────
+// CLOSING HISTORY
+// ─────────────────────────────────────────────
 function renderClosingHistory() {
   const div = document.getElementById('closing-history-list');
   if (!DB.closing.length) {
@@ -2782,7 +2648,6 @@ async function deleteClosing(id) {
 function viewClosingDay(date) {
   document.getElementById('cl-filter-date').value = date;
   renderClosingReport();
-  // Scroll to report
   document.getElementById('closing-report').scrollIntoView({behavior:'smooth'});
 }
 
@@ -2845,21 +2710,17 @@ function filterOpeningTable() {
 async function saveOpeningStock() {
   const date = document.getElementById('op-date').value || bizDayToday();
   setSyncStatus('busy','Saving opening stock…');
-
   let saved = 0;
   for (const ing of DB.ingredients) {
     const elStock = document.getElementById(`op_${ing.id}`);
     const elMin   = document.getElementById(`opm_${ing.id}`);
     if (!elStock) continue;
-
     const val    = safe(elStock.value);
     const minVal = elMin ? safe(elMin.value) : safe(ing.minlevel);
-
     ing.openingstock = val;
     ing.currentstock = val;
     ing.openingdate  = date;
     ing.minlevel     = minVal;
-
     await sb.from('ingredients').update({
       openingstock: val, currentstock: val,
       openingdate: date, minlevel: minVal,
@@ -2867,7 +2728,6 @@ async function saveOpeningStock() {
     }).eq('id', ing.id);
     saved++;
   }
-
   closeM('m-opening');
   renderIngredients();
   renderDashboard();
@@ -2888,27 +2748,17 @@ function applyBulkMinLevel() {
   const cat = document.getElementById('bulk-min-cat').value;
   const val = safe(document.getElementById('bulk-min-val').value);
   if (val <= 0) { toast('Enter a min level value greater than 0','err'); return; }
-
   let count = 0;
   DB.ingredients.forEach(ing => {
     if (cat && ing.category !== cat) return;
     const el = document.getElementById(`opm_${ing.id}`);
-    if (el) {
-      el.value = val.toFixed(3);
-      el.style.background = '#fff';
-      count++;
-    }
+    if (el) { el.value = val.toFixed(3); el.style.background = '#fff'; count++; }
   });
   toast(`Applied min level ${val} to ${count} ingredients — click Save to confirm`);
 }
 
 // ─────────────────────────────────────────────
-// TEMPLATES
-// ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
-// BLOB DOWNLOAD HELPER
-// XLSX.writeFile fails on file:// protocol
-// This works everywhere
+// BLOB DOWNLOAD
 // ─────────────────────────────────────────────
 function blobDownload(wb, filename) {
   const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
@@ -2925,70 +2775,49 @@ function blobDownload(wb, filename) {
 function dlTemplate(type) {
   let wb, ws, data, filename;
   wb = XLSX.utils.book_new();
-
   if (type === 'ingredients') {
     data = [
       { ingredient_name:'Chicken Breast', category:'chicken', unit:'kg',  current_stock:50,   min_level:10,   cost_per_unit:450, supplier:'Fresh Farms', location:'Cold Storage A' },
       { ingredient_name:'Burger Bun',     category:'bread',   unit:'pcs', current_stock:200,  min_level:50,   cost_per_unit:25,  supplier:'Bakery Plus', location:'Dry Store' },
-      { ingredient_name:'Tomato Sauce',   category:'sauce',   unit:'ml',  current_stock:5000, min_level:1000, cost_per_unit:0.5, supplier:'Best Foods',  location:'Dry Store' },
-      { ingredient_name:'Cheddar Cheese', category:'cheese',  unit:'kg',  current_stock:15,   min_level:3,    cost_per_unit:900, supplier:'Dairy Co',    location:'Cold Storage B' },
     ];
     ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'Ingredients');
     filename = 'OvenX_Ingredients_Template.xlsx';
-
   } else if (type === 'opening') {
     data = DB.ingredients.length > 0
       ? DB.ingredients.map(i => ({ ingredient_name: i.name, unit: i.unit, opening_stock: safe(i.currentstock) }))
-      : [
-          { ingredient_name:'Chicken Breast', unit:'kg',  opening_stock:50  },
-          { ingredient_name:'Burger Bun',     unit:'pcs', opening_stock:200 },
-        ];
+      : [{ ingredient_name:'Chicken Breast', unit:'kg', opening_stock:50 }];
     ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'Opening Stock');
     filename = 'OvenX_OpeningStock_Template.xlsx';
-
   } else if (type === 'grn') {
     data = [
-      { ingredient_name:'Chicken Breast', qty:20,   unit:'kg',  unit_cost:450 },
-      { ingredient_name:'Burger Bun',     qty:100,  unit:'pcs', unit_cost:25  },
-      { ingredient_name:'Tomato Sauce',   qty:2000, unit:'ml',  unit_cost:0.5 },
+      { ingredient_name:'Chicken Breast', qty:20,  unit:'kg',  unit_cost:450 },
+      { ingredient_name:'Burger Bun',     qty:100, unit:'pcs', unit_cost:25  },
     ];
     ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'GRN');
     filename = 'OvenX_GRN_Template.xlsx';
-
   } else if (type === 'closing') {
     data = DB.ingredients.length > 0
       ? DB.ingredients.map(i => ({ ingredient_name: i.name, unit: i.unit, physical_count: '' }))
-      : [
-          { ingredient_name:'Chicken Breast', unit:'kg',  physical_count:'' },
-          { ingredient_name:'Burger Bun',     unit:'pcs', physical_count:'' },
-        ];
+      : [{ ingredient_name:'Chicken Breast', unit:'kg', physical_count:'' }];
     ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'Night Closing');
     filename = 'OvenX_Closing_Template.xlsx';
-
-  } else {
-    return;
-  }
-
-  // Blob download — works on both file:// and http://
+  } else { return; }
   blobDownload(wb, filename);
 }
 
-// UPLOAD INGREDIENTS EXCEL — triggered from file input
 let _pendingIngredients = null;
 
 async function handleIngredientsUploadFile(e) {
   const file = e.target.files[0];
   if (!file) return;
-
   const reader = new FileReader();
   reader.onload = ev => {
     const wb   = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-
     const parsed = [], skipped = [];
     rows.forEach(row => {
       const name = (row['ingredient_name']||row['name']||row['Name']||'').toString().trim();
@@ -3010,15 +2839,13 @@ async function handleIngredientsUploadFile(e) {
       if (rec.costperunit === 0) skipped.push(name + ' (no cost)');
       parsed.push(rec);
     });
-
     _pendingIngredients = parsed;
-
     const prev = document.getElementById('ing-upload-preview');
     prev.style.display = 'block';
     prev.innerHTML = `
       <div style="background:#eff6ff;border-radius:10px;padding:14px;border:2px solid #bfdbfe;">
         <strong style="color:#1d4ed8;">${parsed.length} ingredients found</strong>
-        ${skipped.length ? `<br><span style="color:var(--warning);font-size:12px;">⚠️ No cost set for: ${skipped.slice(0,5).join(', ')}${skipped.length>5?'…':''}</span>` : ''}
+        ${skipped.length ? `<br><span style="color:var(--warning);font-size:12px;">⚠️ No cost: ${skipped.slice(0,5).join(', ')}</span>` : ''}
         <div class="tbl-wrap" style="margin-top:10px;max-height:220px;overflow-y:auto;">
           <table>
             <thead><tr><th>Name</th><th>Category</th><th>Unit</th><th>Stock</th><th>Cost/Unit</th></tr></thead>
@@ -3046,30 +2873,23 @@ async function handleIngredientsUploadFile(e) {
 async function commitIngredientsUpload() {
   if (!_pendingIngredients || !_pendingIngredients.length) return;
   setSyncStatus('busy', `Saving ${_pendingIngredients.length} ingredients…`);
-
   let saved = 0;
-  // Upsert in batches of 50
-  const batchSize = 50;
-  for (let i = 0; i < _pendingIngredients.length; i += batchSize) {
-    const batch = _pendingIngredients.slice(i, i + batchSize);
+  for (let i = 0; i < _pendingIngredients.length; i += 50) {
+    const batch = _pendingIngredients.slice(i, i + 50);
     const { error } = await sb.from('ingredients').upsert(batch, {onConflict:'id'});
     if (error) { toast('❌ ' + error.message, 'err'); setSyncStatus('ok',''); return; }
     saved += batch.length;
     setSyncStatus('busy', `Saved ${saved}/${_pendingIngredients.length}…`);
   }
-
-  // Update local DB
   _pendingIngredients.forEach(rec => {
     const idx = DB.ingredients.findIndex(i => i.id === rec.id);
     if (idx >= 0) DB.ingredients[idx] = rec; else DB.ingredients.push(rec);
   });
   DB.ingredients.sort((a,b) => a.name.localeCompare(b.name));
-
   _pendingIngredients = null;
   document.getElementById('ing-upload-file').value  = '';
   document.getElementById('ing-upload-preview').style.display = 'none';
   document.getElementById('ing-upload-body').style.display    = 'none';
-
   populateCategoryFilter();
   renderIngredients();
   renderDashboard();
@@ -3077,50 +2897,10 @@ async function commitIngredientsUpload() {
   toast(`✅ ${saved} ingredients saved`);
 }
 
-// UPLOAD INGREDIENTS EXCEL — legacy function kept for compatibility
-async function handleIngredientsUpload(file) {
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    const wb = XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-    let saved = 0;
-    for (const row of rows) {
-      const name = (row['ingredient_name']||row['name']||row['Name']||'').toString().trim();
-      if (!name) continue;
-      const rec = {
-        id:           uid(),
-        name,
-        category:     (row['category']||row['Category']||'general').toString().toLowerCase(),
-        unit:         (row['unit']||row['Unit']||'pcs').toString().toLowerCase(),
-        currentstock: safe(row['current_stock']||row['Current Stock']||0),
-        openingstock: safe(row['current_stock']||row['Current Stock']||0),
-        openingdate:  bizDayToday(),
-        minlevel:     safe(row['min_level']||row['Min Level']||0),
-        costperunit:  safe(row['cost_per_unit']||row['Cost Per Unit']||0),
-        supplier:     (row['supplier']||row['Supplier']||'').toString(),
-        location:     (row['location']||row['Location']||'').toString(),
-        updatedat:    new Date().toISOString()
-      };
-      const { error } = await sb.from('ingredients').upsert(rec,{onConflict:'id'});
-      if (!error) { DB.ingredients.push(rec); saved++; }
-    }
-    DB.ingredients.sort((a,b)=>a.name.localeCompare(b.name));
-    renderIngredients();
-    renderDashboard();
-    populateCategoryFilter();
-    toast(`✅ ${saved} ingredients loaded`);
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-// ─────────────────────────────────────────────
-// SQL COPY
-// ─────────────────────────────────────────────
-
 // ─────────────────────────────────────────────
 // CONSUMPTION REPORT
 // ─────────────────────────────────────────────
-let _consView = 'item'; // 'item' or 'day'
+let _consView = 'item';
 
 function setConsRange(days) {
   const to = new Date();
@@ -3139,12 +2919,12 @@ function switchConsView(view) {
   _consView = view;
   document.getElementById('cons-by-item').style.display = view === 'item' ? 'block' : 'none';
   document.getElementById('cons-by-day').style.display  = view === 'day'  ? 'block' : 'none';
+  document.getElementById('cons-view-item').className = view === 'item' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
   document.getElementById('cons-view-item').style.background = view === 'item' ? 'var(--brand)' : '#fff';
   document.getElementById('cons-view-item').style.color      = view === 'item' ? '#fff' : 'var(--dark)';
-  document.getElementById('cons-view-item').className = view === 'item' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+  document.getElementById('cons-view-day').className = view === 'day' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
   document.getElementById('cons-view-day').style.background  = view === 'day'  ? 'var(--brand)' : '#fff';
   document.getElementById('cons-view-day').style.color       = view === 'day'  ? '#fff' : 'var(--dark)';
-  document.getElementById('cons-view-day').className = view === 'day' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
   renderConsumption();
 }
 
@@ -3159,108 +2939,69 @@ function getFilteredClosings() {
 
 function renderConsumption() {
   const closings = getFilteredClosings();
-
   if (!closings.length) {
-    document.getElementById('cons-item-tbody').innerHTML =
-      '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mid);">No closing data for this period</td></tr>';
-    document.getElementById('cons-day-tbody').innerHTML =
-      '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--mid);">No closing data for this period</td></tr>';
+    document.getElementById('cons-item-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mid);">No closing data for this period</td></tr>';
+    document.getElementById('cons-day-tbody').innerHTML  = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--mid);">No closing data for this period</td></tr>';
     document.getElementById('cs-days').textContent  = '0';
     document.getElementById('cs-total').textContent = fmtCurrency(0);
     document.getElementById('cs-avg').textContent   = fmtCurrency(0);
     document.getElementById('cs-top').textContent   = '—';
     return;
   }
-
-  // Get all closing items for these closings
   const closingIds = new Set(closings.map(c => c.id));
   const allItems   = DB.closingItems.filter(i => closingIds.has(i.closing_id) && safe(i.consumed) > 0);
-
-  // ── STATS ──
-  const totalCost = closings.reduce((s,c) => s + safe(c.totalcost), 0);
-  const avgCost   = closings.length > 0 ? totalCost / closings.length : 0;
-
-  // Top ingredient by cost
-  const ingTotals = {};
+  const totalCost  = closings.reduce((s,c) => s + safe(c.totalcost), 0);
+  const avgCost    = closings.length > 0 ? totalCost / closings.length : 0;
+  const ingTotals  = {};
   allItems.forEach(i => {
     if (!ingTotals[i.itemname]) ingTotals[i.itemname] = 0;
     ingTotals[i.itemname] += safe(i.consumptioncost);
   });
   const topIng = Object.entries(ingTotals).sort((a,b) => b[1]-a[1])[0];
-
   document.getElementById('cs-days').textContent  = closings.length;
   document.getElementById('cs-total').textContent = fmtCurrency(totalCost);
   document.getElementById('cs-avg').textContent   = fmtCurrency(avgCost);
   document.getElementById('cs-top').textContent   = topIng ? topIng[0] : '—';
-
-  if (_consView === 'item') {
-    renderConsumptionByItem(allItems, totalCost);
-  } else {
-    renderConsumptionByDay(closings);
-  }
+  if (_consView === 'item') renderConsumptionByItem(allItems, totalCost);
+  else renderConsumptionByDay(closings);
 }
 
 function renderConsumptionByItem(allItems, totalCost) {
-  // Aggregate by ingredient name
   const map = {};
   allItems.forEach(i => {
     if (!map[i.itemname]) {
-      map[i.itemname] = {
-        name: i.itemname,
-        unit: i.unit,
-        category: '',
-        totalConsumed: 0,
-        totalCost: 0,
-        days: new Set(),
-        costPerUnitSum: 0,
-        costPerUnitCount: 0
-      };
+      map[i.itemname] = { name: i.itemname, unit: i.unit, category: '', totalConsumed: 0, totalCost: 0, days: new Set(), costPerUnitSum: 0, costPerUnitCount: 0 };
     }
     map[i.itemname].totalConsumed    += safe(i.consumed);
     map[i.itemname].totalCost        += safe(i.consumptioncost);
     map[i.itemname].days.add(i.closing_id);
-    if (safe(i.costperunit) > 0) {
-      map[i.itemname].costPerUnitSum   += safe(i.costperunit);
-      map[i.itemname].costPerUnitCount += 1;
-    }
+    if (safe(i.costperunit) > 0) { map[i.itemname].costPerUnitSum += safe(i.costperunit); map[i.itemname].costPerUnitCount += 1; }
   });
-
-  // Enrich with category from ingredients master
   Object.values(map).forEach(row => {
     const ing = DB.ingredients.find(i => i.name === row.name);
     if (ing) row.category = catLabel(ing.category);
   });
-
   const rows = Object.values(map).sort((a,b) => b.totalCost - a.totalCost);
   const tbody = document.getElementById('cons-item-tbody');
-
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mid);">No consumption in this period</td></tr>';
-    return;
-  }
-
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--mid);">No consumption in this period</td></tr>'; return; }
   tbody.innerHTML = rows.map((r, idx) => {
     const avgCpu = r.costPerUnitCount > 0 ? r.costPerUnitSum / r.costPerUnitCount : 0;
     const pct    = totalCost > 0 ? (r.totalCost / totalCost * 100).toFixed(1) : '0.0';
     const barW   = totalCost > 0 ? Math.round(r.totalCost / totalCost * 100) : 0;
     const rankColor = idx === 0 ? 'var(--danger)' : idx === 1 ? 'var(--warning)' : idx === 2 ? 'var(--brand)' : 'var(--mid)';
-
     return '<tr>' +
       '<td><div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="font-size:11px;font-weight:800;color:' + rankColor + ';min-width:16px;">#' + (idx+1) + '</span>' +
         '<div><div style="font-weight:700;">' + r.name + '</div>' +
           '<div style="height:3px;background:#f3f4f6;border-radius:2px;margin-top:3px;width:100px;">' +
             '<div style="height:3px;background:' + rankColor + ';border-radius:2px;width:' + barW + '%;"></div>' +
-          '</div>' +
-        '</div></div></td>' +
+          '</div></div></div></td>' +
       '<td><span class="badge badge-info" style="font-size:10px;">' + (r.category||'—') + '</span></td>' +
       '<td style="text-align:right;font-weight:700;">' + fmtNum(r.totalConsumed, 3) + '</td>' +
       '<td><span class="unit-pill">' + r.unit + '</span></td>' +
       '<td style="text-align:right;color:var(--mid);">' + fmtCurrency(avgCpu) + '</td>' +
       '<td style="text-align:right;font-weight:800;color:var(--danger);">' + fmtCurrency(r.totalCost) + '</td>' +
-      '<td style="text-align:right;">' +
-        '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">' + pct + '%</span>' +
-      '</td>' +
+      '<td style="text-align:right;"><span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">' + pct + '%</span></td>' +
       '<td style="color:var(--mid);font-size:12px;">' + r.days.size + ' days</td>' +
     '</tr>';
   }).join('');
@@ -3287,28 +3028,19 @@ function renderConsumptionByDay(closings) {
 function exportConsumptionReport() {
   const closings = getFilteredClosings();
   if (!closings.length) { toast('No data to export','err'); return; }
-
   const closingIds = new Set(closings.map(c => c.id));
   const allItems   = DB.closingItems.filter(i => closingIds.has(i.closing_id) && safe(i.consumed) > 0);
-
-  // Build flat export with bizday joined
   const closingMap = {};
   closings.forEach(c => closingMap[c.id] = c);
-
   const data = allItems.map(i => ({
     'Business Day': closingMap[i.closing_id]?.bizday || '',
     'Closed By':    closingMap[i.closing_id]?.closedby || '',
-    'Ingredient':   i.itemname,
-    'Unit':         i.unit,
-    'Opening':      i.opening,
-    'GRN Today':    i.grntoday,
-    'Available':    i.available,
-    'Physical':     i.physical,
-    'Consumed':     i.consumed,
-    'Cost/Unit':    i.costperunit,
+    'Ingredient':   i.itemname, 'Unit': i.unit,
+    'Opening': i.opening, 'GRN Today': i.grntoday,
+    'Available': i.available, 'Physical': i.physical,
+    'Consumed': i.consumed, 'Cost/Unit': i.costperunit,
     'Consumption Cost': i.consumptioncost
   }));
-
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Consumption');
@@ -3322,23 +3054,20 @@ function copySQL() {
 }
 
 // ─────────────────────────────────────────────
-// INIT DEFAULTS
+// INIT
 // ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  // Default dates
   const today = bizDayToday();
   const setIfEmpty = id => { const el=document.getElementById(id); if(el&&!el.value) el.value=today; };
   ['quick-grn-date','quick-closing-date','cl-filter-date'].forEach(setIfEmpty);
-
-  // Default consumption range to last 30 days
   const consFrom = new Date(); consFrom.setDate(consFrom.getDate()-30);
   document.getElementById('cons-from').value = consFrom.toISOString().slice(0,10);
   document.getElementById('cons-to').value   = today;
-
   init();
 });
+
 // ─────────────────────────────────────────────
-// LOGIN SYSTEM
+// LOGIN
 // ─────────────────────────────────────────────
 const APP_PASSWORD = 'ovenx1234';
 
@@ -3346,14 +3075,13 @@ function doLogin() {
   const entered = document.getElementById('login-pass').value;
   const box     = document.getElementById('login-box');
   const err     = document.getElementById('login-error');
-
   if (entered === APP_PASSWORD) {
     sessionStorage.setItem('ovenx_auth', '1');
     document.getElementById('login-screen').classList.add('hidden');
     err.classList.remove('show');
   } else {
     box.classList.remove('shake');
-    void box.offsetWidth; // force reflow to restart animation
+    void box.offsetWidth;
     box.classList.add('shake');
     err.classList.add('show');
     document.getElementById('login-pass').value = '';
@@ -3361,7 +3089,6 @@ function doLogin() {
   }
 }
 
-// Auto-unlock if already authenticated this session
 if (sessionStorage.getItem('ovenx_auth') === '1') {
   document.getElementById('login-screen').classList.add('hidden');
 }
