@@ -1343,6 +1343,14 @@ function renderDashboard() {
       </div>`;
     }).join('');
   }
+  const varianceItems = DB.closingItems.filter(i => safe(i.variance) > 0 && DB.closing.some(c => c.id === i.closing_id && c.bizday === DB.closing[0]?.bizday));
+  if (varianceItems.length > 0) {
+    alertDiv.innerHTML += varianceItems.map(v => `
+      <div class="alert-row warn" style="border-color:#f59e0b;">
+        <div><strong>${v.itemname}</strong><div style="font-size:12px;color:var(--mid);">Physical count exceeded available stock</div></div>
+        <div style="text-align:right;"><span class="badge badge-warn">+${fmtNum(v.variance,3)} ${v.unit} unexplained</span></div>
+      </div>`).join('');
+  }
 
   const rcDiv = document.getElementById('dash-recent-closing');
   if (DB.closing.length === 0) {
@@ -1631,9 +1639,12 @@ async function saveGRN() {
   for (const item of items) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
+      const newAvgCost = weightedAvgCost(ing.currentstock, ing.costperunit, item.qty, item.ucost);
       ing.currentstock = safe(ing.currentstock) + item.qty;
+      ing.costperunit  = newAvgCost;
       await sb.from('ingredients').update({
         currentstock: ing.currentstock,
+        costperunit:  newAvgCost,
         updatedat: new Date().toISOString()
       }).eq('id', ing.id);
     }
@@ -1862,11 +1873,14 @@ async function updateGRN() {
   for (const item of newItems) {
     const ing = DB.ingredients.find(i=>i.id===item.ingId);
     if (ing) {
+      const newAvgCost = item.ucost > 0
+        ? weightedAvgCost(ing.currentstock, ing.costperunit, item.qty, item.ucost)
+        : ing.costperunit;
       ing.currentstock = safe(ing.currentstock) + item.qty;
-      if (item.ucost > 0) ing.costperunit = item.ucost;
+      ing.costperunit  = newAvgCost;
       await sb.from('ingredients').update({
         currentstock: ing.currentstock,
-        costperunit:  item.ucost > 0 ? item.ucost : ing.costperunit,
+        costperunit:  newAvgCost,
         updatedat:    new Date().toISOString()
       }).eq('id', ing.id);
     }
@@ -2034,11 +2048,14 @@ async function commitUploadGRN() {
   const { error: iErr } = await sb.from('grn_items').insert(itemRows);
   if (iErr) { toast('❌ '+iErr.message,'err'); return; }
   for (const m of matched) {
+    const newAvgCost = m.ucost > 0
+      ? weightedAvgCost(m.ing.currentstock, m.ing.costperunit, m.qty, m.ucost)
+      : m.ing.costperunit;
     m.ing.currentstock = safe(m.ing.currentstock) + m.qty;
-    if (m.ucost > 0) m.ing.costperunit = m.ucost;
+    m.ing.costperunit  = newAvgCost;
     await sb.from('ingredients').update({
       currentstock: m.ing.currentstock,
-      costperunit:  m.ucost > 0 ? m.ucost : m.ing.costperunit,
+      costperunit:  newAvgCost,
       updatedat:    new Date().toISOString()
     }).eq('id', m.ing.id);
   }
@@ -2062,16 +2079,21 @@ function getGRNTodayForIng(ingId, bizday) {
     .reduce((s,i)=>s+safe(i.qty), 0);
 }
 
-function getOpeningForIng(ing, bizday) {
-  const prevDate = new Date(bizday);
-  prevDate.setDate(prevDate.getDate()-1);
-  const prevStr = prevDate.toISOString().slice(0,10);
-  const prevClose = DB.closing.find(c=>c.bizday===prevStr);
-  if (prevClose) {
-    const item = DB.closingItems.find(i=>i.closing_id===prevClose.id && i.ingredient_id===ing.id);
+function getOpeningForIng(ing, bizday, maxLookbackDays = 60) {
+  // Search backward for the most recent closing BEFORE bizday, not just yesterday.
+  // Handles skipped nights (staff off, restaurant closed, etc.) gracefully.
+  const target = new Date(bizday);
+  const priorClosings = DB.closing
+    .filter(c => c.bizday < bizday)
+    .sort((a, b) => b.bizday.localeCompare(a.bizday)); // most recent first
+
+  for (const closing of priorClosings) {
+    const daysBack = (target - new Date(closing.bizday)) / (1000*60*60*24);
+    if (daysBack > maxLookbackDays) break; // stop searching too far back
+    const item = DB.closingItems.find(i => i.closing_id === closing.id && i.ingredient_id === ing.id);
     if (item) return safe(item.physical);
   }
-  return safe(ing.openingstock);
+  return safe(ing.openingstock); // fallback: manually set opening stock
 }
 
 function openManualClosing() {
@@ -2098,6 +2120,9 @@ function generateClosingTable(bizday) {
         <input class="closing-input" type="number" step="0.001" min="0"
                id="phys_${ing.id}"
                placeholder="${fmtNum(available,3)}">
+        <input class="form-input" type="text" id="reason_${ing.id}"
+               placeholder="Waste/spoilage note (optional)"
+               style="margin-top:4px;font-size:10px;padding:4px 6px;width:120px;">
       </td>
       <td><span class="unit-pill">${ing.unit}</span></td>
     </tr>`;
@@ -2135,17 +2160,24 @@ async function saveManualClosing() {
     const available = opening + grnToday;
     const physEl    = document.getElementById(`phys_${ing.id}`);
     const physical  = physEl?.value !== '' ? safe(physEl.value) : available;
-    const consumed  = Math.max(0, available - physical);
+    const rawDiff   = available - physical;
+    const consumed  = Math.max(0, rawDiff);
+    const variance  = rawDiff < 0 ? Math.abs(rawDiff) : 0; // physical count exceeded available
     const cpu       = safe(ing.costperunit);
     const cost      = consumed * cpu;
     if (consumed > 0) totalCost += cost;
+    if (variance > 0) {
+      console.warn(`⚠️ Variance: ${ing.name} counted ${variance} ${ing.unit} MORE than available. Check for missed GRN or bad opening figure.`);
+    }
     items.push({
       id: uid(), closing_id: closingId, ingredient_id: ing.id,
       itemname: ing.name, unit: ing.unit,
       opening, grntoday: grnToday, available, physical,
-      consumed, costperunit: cpu, consumptioncost: cost
+      consumed, variance, costperunit: cpu, consumptioncost: cost
     });
   }
+
+  
 
   setSyncStatus('busy','Saving closing…');
 
@@ -2253,15 +2285,20 @@ async function commitUploadClosing() {
     const available = opening + grnToday;
     const entry     = counts[ing.id];
     const physical  = (entry && entry.phys !== null) ? entry.phys : available;
-    const consumed  = Math.max(0, available - physical);
+    const rawDiff   = available - physical;
+    const consumed  = Math.max(0, rawDiff);
+    const variance  = rawDiff < 0 ? Math.abs(rawDiff) : 0; // physical count exceeded available
     const cpu       = safe(ing.costperunit);
     const cost      = consumed * cpu;
     if (consumed > 0) totalCost += cost;
+    if (variance > 0) {
+      console.warn(`⚠️ Variance: ${ing.name} counted ${variance} ${ing.unit} MORE than available. Check for missed GRN or bad opening figure.`);
+    }
     items.push({
       id: uid(), closing_id: closingId, ingredient_id: ing.id,
       itemname: ing.name, unit: ing.unit,
       opening, grntoday: grnToday, available, physical,
-      consumed, costperunit: cpu, consumptioncost: cost
+      consumed, variance, costperunit: cpu, consumptioncost: cost
     });
   }
   setSyncStatus('busy','Saving closing…');
@@ -2494,12 +2531,25 @@ function recalcEditRow(itemId) {
   const grn      = safe(grnEl?.value ?? 0);
   const avail    = opening + grn;
   const phys     = physEl.value !== '' ? safe(physEl.value) : avail;
-  const consumed = Math.max(0, avail - phys);
+  const rawDiff  = avail - phys;
+  const consumed = Math.max(0, rawDiff);
+  const variance = rawDiff < 0 ? Math.abs(rawDiff) : 0;
   const cpu      = safe(cpuEl?.value ?? 0);
   const cost     = consumed * cpu;
 
   if (availEl)    availEl.textContent    = fmtNum(avail, 3);
-  if (consumedEl) consumedEl.textContent = fmtNum(consumed, 3);
+  if (consumedEl) {
+    consumedEl.textContent = fmtNum(consumed, 3);
+    if (variance > 0) {
+      consumedEl.style.background = '#fef9c3';
+      consumedEl.style.color = '#92400e';
+      consumedEl.title = `⚠️ Physical count exceeds available by ${fmtNum(variance,3)} — check for missed GRN`;
+    } else {
+      consumedEl.style.background = '#fef2f2';
+      consumedEl.style.color = 'var(--danger)';
+      consumedEl.title = '';
+    }
+  }
   if (costEl)     costEl.textContent     = consumed > 0 ? fmtCurrency(cost) : '—';
 
   // Highlight changed row
@@ -2603,6 +2653,8 @@ async function saveEditedClosingReport(closingId) {
   renderClosingReport();
   renderDashboard();
   renderIngredients();
+
+  await recalculateForwardFrom(closing.bizday);
 }
 
 // ─────────────────────────────────────────────
@@ -3091,6 +3143,64 @@ function doLogin() {
 
 if (sessionStorage.getItem('ovenx_auth') === '1') {
   document.getElementById('login-screen').classList.add('hidden');
+}
+function weightedAvgCost(oldStock, oldCost, newQty, newCost) {
+  const oldStockSafe = Math.max(0, safe(oldStock));
+  const totalQty = oldStockSafe + safe(newQty);
+  if (totalQty <= 0) return safe(newCost);
+  return ((oldStockSafe * safe(oldCost)) + (safe(newQty) * safe(newCost))) / totalQty;
+}
+async function recalculateForwardFrom(editedBizday) {
+  // Find all closings AFTER the edited date, oldest first
+  const laterClosings = DB.closing
+    .filter(c => c.bizday > editedBizday)
+    .sort((a, b) => a.bizday.localeCompare(b.bizday));
+
+  if (laterClosings.length === 0) return; // nothing downstream to fix
+
+  const proceed = confirm(
+    `${laterClosings.length} closing(s) after ${fmtDate(editedBizday)} used the old numbers as their "opening stock." ` +
+    `Recalculate them now to keep consumption figures accurate?`
+  );
+  if (!proceed) return;
+
+  setSyncStatus('busy', 'Recalculating forward…');
+
+  for (const closing of laterClosings) {
+    const items = DB.closingItems.filter(i => i.closing_id === closing.id);
+    let newTotal = 0;
+    const updated = [];
+
+    for (const item of items) {
+      const ing = DB.ingredients.find(i => i.id === item.ingredient_id);
+      if (!ing) continue;
+      const newOpening = getOpeningForIng(ing, closing.bizday);
+      const newAvail    = newOpening + safe(item.grntoday);
+      const rawDiff     = newAvail - safe(item.physical);
+      const newConsumed = Math.max(0, rawDiff);
+      const newVariance = rawDiff < 0 ? Math.abs(rawDiff) : 0;
+      const newCost      = newConsumed * safe(item.costperunit);
+      newTotal += newCost;
+
+      const patch = { opening:newOpening, available:newAvail, consumed:newConsumed, variance:newVariance, consumptioncost:newCost };
+      await sb.from('closing_items').update(patch).eq('id', item.id);
+      updated.push({ id: item.id, ...patch });
+    }
+
+    await sb.from('closing').update({ totalcost: newTotal }).eq('id', closing.id);
+
+    // sync local cache
+    closing.totalcost = newTotal;
+    updated.forEach(u => {
+      const idx = DB.closingItems.findIndex(i => i.id === u.id);
+      if (idx >= 0) Object.assign(DB.closingItems[idx], u);
+    });
+  }
+
+  setSyncStatus('ok', 'Synced');
+  toast(`✅ Recalculated ${laterClosings.length} downstream closing(s)`);
+  renderClosingReport();
+  renderDashboard();
 }
 </script>
 </body>
